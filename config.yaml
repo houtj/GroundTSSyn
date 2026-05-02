@@ -1,0 +1,53 @@
+signal_length: 512
+
+nb_event_occurrence: [1, 10]
+pdf_nb_event_occurrence: "uniform"
+
+nb_primitives_in_event: [1, 10]
+pdf_nb_primitives_in_event: "uniform"
+
+nb_inter_event_primitives: [0, 5]
+pdf_nb_inter_event_primitives: "linear"
+min_nb_weight: 5
+max_nb_weight: 1
+
+primitive_type_samping_weight:
+  spike: 2
+  dip: 2
+  increase: 3
+  decrease: 3
+  plateau: 3
+  oscillation: 1
+
+min_primitive_length: 5
+min_spike_length: 2
+max_spike_length: 7
+
+pdf_event_length: "skewed_normal"
+event_average_length_weight: 5
+event_extreme_length_weight: 2
+
+pdf_primitives_length: "skewed_normal"
+primitive_average_length_weight: 5
+primitive_extreme_length_weight: 2
+
+event_primitive_peak_2_peak: [1, 10]
+pdf_event_primitive_peak_2_peak: "uniform"
+inter_event_primitive_peak_2_peak: [0, 5]
+pdf_inter_event_primitive_peak_2_peak: "uniform"
+
+# Per-feature scope/pdf for the remaining generative features (slopes, durations,
+# recovery, frequency, etc.) live in feature_schema.yaml.
+
+# Open: weight per feature for constraint sampling (or a smarter way to pick
+# distinctive features).
+# Open: how to bucketize numerical features (low/med/high amplitude,
+# short/med/long duration) for interpretability and constraint specification.
+
+nb_constraints: [0, 3]
+pdf_nb_constraints: [0.7, 0.1, 0.1, 0.1]
+
+jitter_randomness: 0
+
+numerical_constraint_weight: 1
+comparable_constraint_weight: 4
