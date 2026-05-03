@@ -68,6 +68,54 @@ def sample_skewed_normal_integer(
     return int(np.clip(round(x), low, high))
 
 
+def sample_skewed_normal_around(
+    low: float,
+    high: float,
+    center: float,
+    average_weight: float,
+    extreme_weight: float,
+    rng=None,
+) -> float:
+    """
+    Same mixture as `sample_skewed_normal`, but the truncated-normal arm is
+    centered on `clip(center, low, high)` instead of the midpoint. Used by
+    sequential duration sampling so the "average length" mode targets
+    `remaining_budget / n_remaining` rather than the midpoint of the bounds.
+    """
+    rng = _coerce_rng(rng)
+    if high <= low:
+        return float(low)
+    total = average_weight + extreme_weight
+    if total <= 0:
+        return sample_uniform_continuous(low, high, rng)
+    p_normal = average_weight / total
+    mean = float(np.clip(center, low, high))
+    if rng.random() < p_normal:
+        std = max((high - low) / 6.0, 1e-9)
+        for _ in range(50):
+            x = rng.normal(mean, std)
+            if low <= x <= high:
+                return float(x)
+        return mean
+    return sample_uniform_continuous(low, high, rng)
+
+
+def sample_skewed_normal_integer_around(
+    low: int,
+    high: int,
+    center: float,
+    average_weight: float,
+    extreme_weight: float,
+    rng=None,
+) -> int:
+    if high <= low:
+        return int(low)
+    x = sample_skewed_normal_around(
+        float(low), float(high), float(center), average_weight, extreme_weight, rng
+    )
+    return int(np.clip(round(x), low, high))
+
+
 def sample_weighted_categorical(
     options: list[Any], weights: list[float], rng=None
 ) -> Any:

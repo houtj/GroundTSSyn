@@ -1,0 +1,987 @@
+{
+  "seed": 7,
+  "config_summary": {
+    "signal_length": 512,
+    "nb_events": 10,
+    "event_length": 38,
+    "nb_in_event_primitives": 7
+  },
+  "event_template": [
+    {
+      "position": 0,
+      "type": "dip",
+      "level_independent_features": {
+        "peak2peak": 0.6003881062537999,
+        "duration": 4,
+        "fall_duration": 3,
+        "recovery": 0.8642905597641206,
+        "rise_duration": 1,
+        "sharpness": 0.30019405312689995,
+        "asymmetry": 3.0,
+        "rise_slope": 0.6003881062537999,
+        "fall_slope": 0.20012936875126663,
+        "start_slope": -0.20012936875126663,
+        "end_slope": 0.5189097724298171
+      }
+    },
+    {
+      "position": 1,
+      "type": "increase",
+      "level_independent_features": {
+        "peak2peak": 0.26347100800162915,
+        "duration": 7,
+        "shape": "convex",
+        "slope": 0.03763871542880416,
+        "concavity": "convex",
+        "start_slope": 0.013637863664160088,
+        "end_slope": 0.07572707297442083
+      }
+    },
+    {
+      "position": 2,
+      "type": "decrease",
+      "level_independent_features": {
+        "peak2peak": 0.5244410458113204,
+        "duration": 6,
+        "shape": "linear",
+        "slope": 0.0874068409685534,
+        "concavity": "linear",
+        "start_slope": -0.08740684096855333,
+        "end_slope": -0.08740684096855333
+      }
+    },
+    {
+      "position": 3,
+      "type": "decrease",
+      "level_independent_features": {
+        "peak2peak": 0.2938889978983459,
+        "duration": 5,
+        "shape": "linear",
+        "slope": 0.05877779957966918,
+        "concavity": "linear",
+        "start_slope": -0.05877779957966922,
+        "end_slope": -0.05877779957966922
+      }
+    },
+    {
+      "position": 4,
+      "type": "oscillation",
+      "level_independent_features": {
+        "peak2peak": 0.03876236313367265,
+        "duration": 5,
+        "frequency": 0.2,
+        "decay": 0.09671482353973677,
+        "resonance": 3.459923285173315,
+        "regularity": 0.8284660739168443,
+        "waveform_shape": "sinusoidal",
+        "amplitude": 0.019381181566836325,
+        "period": 5.0,
+        "n_cycles": 1.0,
+        "direction": "downward",
+        "start_slope": 0.02398987822343268,
+        "end_slope": -0.01827524129070257
+      }
+    },
+    {
+      "position": 5,
+      "type": "plateau",
+      "level_independent_features": {
+        "duration": 6
+      }
+    },
+    {
+      "position": 6,
+      "type": "increase",
+      "level_independent_features": {
+        "peak2peak": 0.2768778447529634,
+        "duration": 5,
+        "shape": "convex",
+        "slope": 0.05537556895059268,
+        "concavity": "convex",
+        "start_slope": 0.021313846704520856,
+        "end_slope": 0.10556817381607964
+      }
+    }
+  ],
+  "globals": {
+    "min": -1.8978869496512052,
+    "max": 1.9163363247303726,
+    "mean": 0.0,
+    "std": 0.9999999999999999,
+    "peak2peak": 3.814223274381578,
+    "duration": 512,
+    "peak2peak_mean": 0.29471224458244527,
+    "peak2peak_q25": 0.1737331375050798,
+    "peak2peak_median": 0.27687784475296356,
+    "peak2peak_q75": 0.423033926977001,
+    "frequency": 0.001953125,
+    "histogram_peak": 0.2762203167462942
+  },
+  "occurrences": [
+    {
+      "event_index": 0,
+      "span": [
+        21,
+        59
+      ],
+      "primitives": [
+        {
+          "position": 0,
+          "type": "dip",
+          "level_dependent_features": {
+            "start_value": 1.7343436505527263,
+            "end_value": 1.6528653167287435
+          }
+        },
+        {
+          "position": 1,
+          "type": "increase",
+          "level_dependent_features": {
+            "start_value": 1.6528653167287435,
+            "end_value": 1.9163363247303726
+          }
+        },
+        {
+          "position": 2,
+          "type": "decrease",
+          "level_dependent_features": {
+            "start_value": 1.9163363247303726,
+            "end_value": 1.3918952789190522
+          }
+        },
+        {
+          "position": 3,
+          "type": "decrease",
+          "level_dependent_features": {
+            "start_value": 1.3918952789190522,
+            "end_value": 1.0980062810207063
+          }
+        },
+        {
+          "position": 4,
+          "type": "oscillation",
+          "level_dependent_features": {
+            "start_value": 1.0980062810207063,
+            "mean_value": 1.1142225094292701,
+            "end_value": 1.0936098654810151
+          }
+        },
+        {
+          "position": 5,
+          "type": "plateau",
+          "level_dependent_features": {
+            "start_value": 1.0936098654810151,
+            "end_value": 1.0936098654810151
+          }
+        },
+        {
+          "position": 6,
+          "type": "increase",
+          "level_dependent_features": {
+            "start_value": 1.0936098654810151,
+            "end_value": 1.3704877102339785
+          }
+        }
+      ]
+    },
+    {
+      "event_index": 1,
+      "span": [
+        82,
+        120
+      ],
+      "primitives": [
+        {
+          "position": 0,
+          "type": "dip",
+          "level_dependent_features": {
+            "start_value": 1.252212689842229,
+            "end_value": 1.1707343560182462
+          }
+        },
+        {
+          "position": 1,
+          "type": "increase",
+          "level_dependent_features": {
+            "start_value": 1.1707343560182462,
+            "end_value": 1.4342053640198755
+          }
+        },
+        {
+          "position": 2,
+          "type": "decrease",
+          "level_dependent_features": {
+            "start_value": 1.4342053640198755,
+            "end_value": 0.9097643182085549
+          }
+        },
+        {
+          "position": 3,
+          "type": "decrease",
+          "level_dependent_features": {
+            "start_value": 0.9097643182085549,
+            "end_value": 0.6158753203102091
+          }
+        },
+        {
+          "position": 4,
+          "type": "oscillation",
+          "level_dependent_features": {
+            "start_value": 0.6158753203102091,
+            "mean_value": 0.6320915487187728,
+            "end_value": 0.6114789047705177
+          }
+        },
+        {
+          "position": 5,
+          "type": "plateau",
+          "level_dependent_features": {
+            "start_value": 0.6114789047705177,
+            "end_value": 0.6114789047705177
+          }
+        },
+        {
+          "position": 6,
+          "type": "increase",
+          "level_dependent_features": {
+            "start_value": 0.6114789047705177,
+            "end_value": 0.8883567495234813
+          }
+        }
+      ]
+    },
+    {
+      "event_index": 2,
+      "span": [
+        120,
+        158
+      ],
+      "primitives": [
+        {
+          "position": 0,
+          "type": "dip",
+          "level_dependent_features": {
+            "start_value": 0.8883567495234813,
+            "end_value": 0.8068784156994985
+          }
+        },
+        {
+          "position": 1,
+          "type": "increase",
+          "level_dependent_features": {
+            "start_value": 0.8068784156994985,
+            "end_value": 1.0703494237011277
+          }
+        },
+        {
+          "position": 2,
+          "type": "decrease",
+          "level_dependent_features": {
+            "start_value": 1.0703494237011277,
+            "end_value": 0.5459083778898072
+          }
+        },
+        {
+          "position": 3,
+          "type": "decrease",
+          "level_dependent_features": {
+            "start_value": 0.5459083778898072,
+            "end_value": 0.25201937999146123
+          }
+        },
+        {
+          "position": 4,
+          "type": "oscillation",
+          "level_dependent_features": {
+            "start_value": 0.25201937999146123,
+            "mean_value": 0.2682356084000249,
+            "end_value": 0.24762296445176996
+          }
+        },
+        {
+          "position": 5,
+          "type": "plateau",
+          "level_dependent_features": {
+            "start_value": 0.24762296445176996,
+            "end_value": 0.24762296445176996
+          }
+        },
+        {
+          "position": 6,
+          "type": "increase",
+          "level_dependent_features": {
+            "start_value": 0.24762296445176996,
+            "end_value": 0.5245008092047335
+          }
+        }
+      ]
+    },
+    {
+      "event_index": 3,
+      "span": [
+        167,
+        205
+      ],
+      "primitives": [
+        {
+          "position": 0,
+          "type": "dip",
+          "level_dependent_features": {
+            "start_value": 0.6009932895474469,
+            "end_value": 0.5195149557234641
+          }
+        },
+        {
+          "position": 1,
+          "type": "increase",
+          "level_dependent_features": {
+            "start_value": 0.5195149557234641,
+            "end_value": 0.7829859637250933
+          }
+        },
+        {
+          "position": 2,
+          "type": "decrease",
+          "level_dependent_features": {
+            "start_value": 0.7829859637250933,
+            "end_value": 0.2585449179137728
+          }
+        },
+        {
+          "position": 3,
+          "type": "decrease",
+          "level_dependent_features": {
+            "start_value": 0.2585449179137728,
+            "end_value": -0.03534407998457305
+          }
+        },
+        {
+          "position": 4,
+          "type": "oscillation",
+          "level_dependent_features": {
+            "start_value": -0.03534407998457305,
+            "mean_value": -0.019127851576009377,
+            "end_value": -0.039740495524264355
+          }
+        },
+        {
+          "position": 5,
+          "type": "plateau",
+          "level_dependent_features": {
+            "start_value": -0.039740495524264355,
+            "end_value": -0.039740495524264355
+          }
+        },
+        {
+          "position": 6,
+          "type": "increase",
+          "level_dependent_features": {
+            "start_value": -0.039740495524264355,
+            "end_value": 0.2371373492286992
+          }
+        }
+      ]
+    },
+    {
+      "event_index": 4,
+      "span": [
+        238,
+        276
+      ],
+      "primitives": [
+        {
+          "position": 0,
+          "type": "dip",
+          "level_dependent_features": {
+            "start_value": 0.5632066400489995,
+            "end_value": 0.48172830622501656
+          }
+        },
+        {
+          "position": 1,
+          "type": "increase",
+          "level_dependent_features": {
+            "start_value": 0.48172830622501656,
+            "end_value": 0.7451993142266459
+          }
+        },
+        {
+          "position": 2,
+          "type": "decrease",
+          "level_dependent_features": {
+            "start_value": 0.7451993142266459,
+            "end_value": 0.22075826841532536
+          }
+        },
+        {
+          "position": 3,
+          "type": "decrease",
+          "level_dependent_features": {
+            "start_value": 0.22075826841532536,
+            "end_value": -0.07313072948302028
+          }
+        },
+        {
+          "position": 4,
+          "type": "oscillation",
+          "level_dependent_features": {
+            "start_value": -0.07313072948302028,
+            "mean_value": -0.05691450107445661,
+            "end_value": -0.07752714502271159
+          }
+        },
+        {
+          "position": 5,
+          "type": "plateau",
+          "level_dependent_features": {
+            "start_value": -0.07752714502271159,
+            "end_value": -0.07752714502271159
+          }
+        },
+        {
+          "position": 6,
+          "type": "increase",
+          "level_dependent_features": {
+            "start_value": -0.07752714502271159,
+            "end_value": 0.19935069973025196
+          }
+        }
+      ]
+    },
+    {
+      "event_index": 5,
+      "span": [
+        276,
+        314
+      ],
+      "primitives": [
+        {
+          "position": 0,
+          "type": "dip",
+          "level_dependent_features": {
+            "start_value": 0.19935069973025196,
+            "end_value": 0.11787236590626907
+          }
+        },
+        {
+          "position": 1,
+          "type": "increase",
+          "level_dependent_features": {
+            "start_value": 0.11787236590626907,
+            "end_value": 0.3813433739078982
+          }
+        },
+        {
+          "position": 2,
+          "type": "decrease",
+          "level_dependent_features": {
+            "start_value": 0.3813433739078982,
+            "end_value": -0.14309767190342237
+          }
+        },
+        {
+          "position": 3,
+          "type": "decrease",
+          "level_dependent_features": {
+            "start_value": -0.14309767190342237,
+            "end_value": -0.43698666980176826
+          }
+        },
+        {
+          "position": 4,
+          "type": "oscillation",
+          "level_dependent_features": {
+            "start_value": -0.43698666980176826,
+            "mean_value": -0.4207704413932046,
+            "end_value": -0.4413830853414596
+          }
+        },
+        {
+          "position": 5,
+          "type": "plateau",
+          "level_dependent_features": {
+            "start_value": -0.4413830853414596,
+            "end_value": -0.4413830853414596
+          }
+        },
+        {
+          "position": 6,
+          "type": "increase",
+          "level_dependent_features": {
+            "start_value": -0.4413830853414596,
+            "end_value": -0.16450524058849603
+          }
+        }
+      ]
+    },
+    {
+      "event_index": 6,
+      "span": [
+        329,
+        367
+      ],
+      "primitives": [
+        {
+          "position": 0,
+          "type": "dip",
+          "level_dependent_features": {
+            "start_value": -0.21273874314291036,
+            "end_value": -0.29421707696689325
+          }
+        },
+        {
+          "position": 1,
+          "type": "increase",
+          "level_dependent_features": {
+            "start_value": -0.29421707696689325,
+            "end_value": -0.030746068965263874
+          }
+        },
+        {
+          "position": 2,
+          "type": "decrease",
+          "level_dependent_features": {
+            "start_value": -0.030746068965263874,
+            "end_value": -0.5551871147765844
+          }
+        },
+        {
+          "position": 3,
+          "type": "decrease",
+          "level_dependent_features": {
+            "start_value": -0.5551871147765844,
+            "end_value": -0.8490761126749303
+          }
+        },
+        {
+          "position": 4,
+          "type": "oscillation",
+          "level_dependent_features": {
+            "start_value": -0.8490761126749303,
+            "mean_value": -0.8328598842663667,
+            "end_value": -0.8534725282146216
+          }
+        },
+        {
+          "position": 5,
+          "type": "plateau",
+          "level_dependent_features": {
+            "start_value": -0.8534725282146216,
+            "end_value": -0.8534725282146216
+          }
+        },
+        {
+          "position": 6,
+          "type": "increase",
+          "level_dependent_features": {
+            "start_value": -0.8534725282146216,
+            "end_value": -0.5765946834616581
+          }
+        }
+      ]
+    },
+    {
+      "event_index": 7,
+      "span": [
+        381,
+        419
+      ],
+      "primitives": [
+        {
+          "position": 0,
+          "type": "dip",
+          "level_dependent_features": {
+            "start_value": -0.6165355445930881,
+            "end_value": -0.698013878417071
+          }
+        },
+        {
+          "position": 1,
+          "type": "increase",
+          "level_dependent_features": {
+            "start_value": -0.698013878417071,
+            "end_value": -0.4345428704154418
+          }
+        },
+        {
+          "position": 2,
+          "type": "decrease",
+          "level_dependent_features": {
+            "start_value": -0.4345428704154418,
+            "end_value": -0.9589839162267624
+          }
+        },
+        {
+          "position": 3,
+          "type": "decrease",
+          "level_dependent_features": {
+            "start_value": -0.9589839162267624,
+            "end_value": -1.2528729141251083
+          }
+        },
+        {
+          "position": 4,
+          "type": "oscillation",
+          "level_dependent_features": {
+            "start_value": -1.2528729141251083,
+            "mean_value": -1.2366566857165446,
+            "end_value": -1.2572693296647997
+          }
+        },
+        {
+          "position": 5,
+          "type": "plateau",
+          "level_dependent_features": {
+            "start_value": -1.2572693296647997,
+            "end_value": -1.2572693296647997
+          }
+        },
+        {
+          "position": 6,
+          "type": "increase",
+          "level_dependent_features": {
+            "start_value": -1.2572693296647997,
+            "end_value": -0.980391484911836
+          }
+        }
+      ]
+    },
+    {
+      "event_index": 8,
+      "span": [
+        425,
+        463
+      ],
+      "primitives": [
+        {
+          "position": 0,
+          "type": "dip",
+          "level_dependent_features": {
+            "start_value": -0.8932972242607456,
+            "end_value": -0.9747755580847286
+          }
+        },
+        {
+          "position": 1,
+          "type": "increase",
+          "level_dependent_features": {
+            "start_value": -0.9747755580847286,
+            "end_value": -0.7113045500830995
+          }
+        },
+        {
+          "position": 2,
+          "type": "decrease",
+          "level_dependent_features": {
+            "start_value": -0.7113045500830995,
+            "end_value": -1.2357455958944201
+          }
+        },
+        {
+          "position": 3,
+          "type": "decrease",
+          "level_dependent_features": {
+            "start_value": -1.2357455958944201,
+            "end_value": -1.529634593792766
+          }
+        },
+        {
+          "position": 4,
+          "type": "oscillation",
+          "level_dependent_features": {
+            "start_value": -1.529634593792766,
+            "mean_value": -1.5134183653842024,
+            "end_value": -1.5340310093324572
+          }
+        },
+        {
+          "position": 5,
+          "type": "plateau",
+          "level_dependent_features": {
+            "start_value": -1.5340310093324572,
+            "end_value": -1.5340310093324572
+          }
+        },
+        {
+          "position": 6,
+          "type": "increase",
+          "level_dependent_features": {
+            "start_value": -1.5340310093324572,
+            "end_value": -1.2571531645794938
+          }
+        }
+      ]
+    },
+    {
+      "event_index": 9,
+      "span": [
+        468,
+        506
+      ],
+      "primitives": [
+        {
+          "position": 0,
+          "type": "dip",
+          "level_dependent_features": {
+            "start_value": -1.2571531645794938,
+            "end_value": -1.3386314984034766
+          }
+        },
+        {
+          "position": 1,
+          "type": "increase",
+          "level_dependent_features": {
+            "start_value": -1.3386314984034766,
+            "end_value": -1.0751604904018475
+          }
+        },
+        {
+          "position": 2,
+          "type": "decrease",
+          "level_dependent_features": {
+            "start_value": -1.0751604904018475,
+            "end_value": -1.599601536213168
+          }
+        },
+        {
+          "position": 3,
+          "type": "decrease",
+          "level_dependent_features": {
+            "start_value": -1.599601536213168,
+            "end_value": -1.8934905341115138
+          }
+        },
+        {
+          "position": 4,
+          "type": "oscillation",
+          "level_dependent_features": {
+            "start_value": -1.8934905341115138,
+            "mean_value": -1.8772743057029502,
+            "end_value": -1.8978869496512052
+          }
+        },
+        {
+          "position": 5,
+          "type": "plateau",
+          "level_dependent_features": {
+            "start_value": -1.8978869496512052,
+            "end_value": -1.8978869496512052
+          }
+        },
+        {
+          "position": 6,
+          "type": "increase",
+          "level_dependent_features": {
+            "start_value": -1.8978869496512052,
+            "end_value": -1.6210091048982416
+          }
+        }
+      ]
+    }
+  ],
+  "constraints": [
+    {
+      "template_index": 0,
+      "type": "dip",
+      "requested_count": 0,
+      "actual_count": 0,
+      "constraints": []
+    },
+    {
+      "template_index": 1,
+      "type": "increase",
+      "requested_count": 0,
+      "actual_count": 0,
+      "constraints": []
+    },
+    {
+      "template_index": 2,
+      "type": "decrease",
+      "requested_count": 1,
+      "actual_count": 1,
+      "constraints": [
+        {
+          "kind": "comparable",
+          "lhs": {
+            "primitive": 2,
+            "feature": "end_value"
+          },
+          "op": ">=",
+          "rhs": {
+            "primitive": 4,
+            "feature": "mean_value"
+          },
+          "realized_lhs": 1.3918952789190522,
+          "realized_rhs": 1.1142225094292701,
+          "p_satisfied": 0.05,
+          "info": 2.995732273553991,
+          "salience": 0.7,
+          "weight": 2.0970125914877933
+        }
+      ]
+    },
+    {
+      "template_index": 3,
+      "type": "decrease",
+      "requested_count": 3,
+      "actual_count": 3,
+      "constraints": [
+        {
+          "kind": "numerical",
+          "target": {
+            "primitive": 3,
+            "feature": "duration"
+          },
+          "op": "<",
+          "threshold": 7.0,
+          "realized_value": 5.0,
+          "p_satisfied": 0.07,
+          "info": 2.659260036932778,
+          "salience": 0.8,
+          "weight": 2.1274080295462223
+        },
+        {
+          "kind": "comparable",
+          "lhs": {
+            "primitive": 3,
+            "feature": "peak2peak"
+          },
+          "op": ">",
+          "rhs": {
+            "primitive": 6,
+            "feature": "peak2peak"
+          },
+          "realized_lhs": 0.2938889978983459,
+          "realized_rhs": 0.2768778447529634,
+          "p_satisfied": 0.53,
+          "info": 0.6348782724359695,
+          "salience": 0.9,
+          "weight": 0.5713904451923726
+        },
+        {
+          "kind": "comparable",
+          "lhs": {
+            "primitive": 3,
+            "feature": "duration"
+          },
+          "op": "==",
+          "rhs": {
+            "primitive": 6,
+            "feature": "duration"
+          },
+          "realized_lhs": 5.0,
+          "realized_rhs": 5.0,
+          "p_satisfied": 0.015,
+          "info": 4.199705077879927,
+          "salience": 0.8,
+          "weight": 3.3597640623039418
+        }
+      ]
+    },
+    {
+      "template_index": 4,
+      "type": "oscillation",
+      "requested_count": 2,
+      "actual_count": 2,
+      "constraints": [
+        {
+          "kind": "comparable",
+          "lhs": {
+            "primitive": 4,
+            "feature": "start_value"
+          },
+          "op": ">",
+          "rhs": {
+            "primitive": 4,
+            "feature": "end_value"
+          },
+          "realized_lhs": 1.0980062810207063,
+          "realized_rhs": 1.0936098654810151,
+          "p_satisfied": 0.56,
+          "info": 0.579818495252942,
+          "salience": 0.7,
+          "weight": 0.4058729466770594
+        },
+        {
+          "kind": "numerical",
+          "target": {
+            "primitive": 4,
+            "feature": "end_slope"
+          },
+          "op": "<=",
+          "threshold": 0.0,
+          "realized_value": -0.01827524129070257,
+          "p_satisfied": 0.425,
+          "info": 0.8556661100577202,
+          "salience": 0.4,
+          "weight": 0.3422664440230881
+        }
+      ]
+    },
+    {
+      "template_index": 5,
+      "type": "plateau",
+      "requested_count": 0,
+      "actual_count": 0,
+      "constraints": []
+    },
+    {
+      "template_index": 6,
+      "type": "increase",
+      "requested_count": 0,
+      "actual_count": 0,
+      "constraints": []
+    }
+  ],
+  "summary": {
+    "total_constraints": 6,
+    "by_kind": {
+      "numerical": 2,
+      "comparable": 4
+    },
+    "primitives_by_constraint_count": {
+      "0": 4,
+      "1": 1,
+      "2": 1,
+      "3": 1
+    },
+    "actual_vs_requested_per_primitive": [
+      {
+        "template_index": 0,
+        "requested": 0,
+        "actual": 0
+      },
+      {
+        "template_index": 1,
+        "requested": 0,
+        "actual": 0
+      },
+      {
+        "template_index": 2,
+        "requested": 1,
+        "actual": 1
+      },
+      {
+        "template_index": 3,
+        "requested": 3,
+        "actual": 3
+      },
+      {
+        "template_index": 4,
+        "requested": 2,
+        "actual": 2
+      },
+      {
+        "template_index": 5,
+        "requested": 0,
+        "actual": 0
+      },
+      {
+        "template_index": 6,
+        "requested": 0,
+        "actual": 0
+      }
+    ]
+  },
+  "validation_warnings": []
+}

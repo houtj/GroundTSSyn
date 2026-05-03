@@ -1,0 +1,816 @@
+{
+  "seed": 0,
+  "config_summary": {
+    "signal_length": 512,
+    "nb_events": 9,
+    "event_length": 38,
+    "nb_in_event_primitives": 7
+  },
+  "event_template": [
+    {
+      "position": 0,
+      "type": "spike",
+      "level_independent_features": {
+        "peak2peak": 0.17943559867020453,
+        "duration": 7,
+        "rise_duration": 2,
+        "recovery": 0.9133428633969257,
+        "fall_duration": 5,
+        "sharpness": 0.04485889966755113,
+        "asymmetry": 0.4,
+        "rise_slope": 0.08971779933510227,
+        "fall_slope": 0.035887119734040906,
+        "start_slope": 0.08971779933510238,
+        "end_slope": -0.03277724469695742
+      }
+    },
+    {
+      "position": 1,
+      "type": "plateau",
+      "level_independent_features": {
+        "duration": 5
+      }
+    },
+    {
+      "position": 2,
+      "type": "spike",
+      "level_independent_features": {
+        "peak2peak": 0.07714500463214047,
+        "duration": 3,
+        "rise_duration": 2,
+        "recovery": 0.9187045351228922,
+        "fall_duration": 1,
+        "sharpness": 0.038572502316070234,
+        "asymmetry": 2.0,
+        "rise_slope": 0.038572502316070234,
+        "fall_slope": 0.07714500463214047,
+        "start_slope": 0.03857250231607012,
+        "end_slope": -0.07087346561762398
+      }
+    },
+    {
+      "position": 3,
+      "type": "plateau",
+      "level_independent_features": {
+        "duration": 7
+      }
+    },
+    {
+      "position": 4,
+      "type": "spike",
+      "level_independent_features": {
+        "peak2peak": 0.3682576476980164,
+        "duration": 5,
+        "rise_duration": 4,
+        "recovery": 0.959092027073673,
+        "fall_duration": 1,
+        "sharpness": 0.12275254923267213,
+        "asymmetry": 4.0,
+        "rise_slope": 0.0920644119245041,
+        "fall_slope": 0.3682576476980164,
+        "start_slope": 0.09206441192450421,
+        "end_slope": -0.35319297381607306
+      }
+    },
+    {
+      "position": 5,
+      "type": "plateau",
+      "level_independent_features": {
+        "duration": 5
+      }
+    },
+    {
+      "position": 6,
+      "type": "increase",
+      "level_independent_features": {
+        "peak2peak": 0.3646004499838722,
+        "duration": 6,
+        "shape": "linear",
+        "slope": 0.0607667416639787,
+        "concavity": "linear",
+        "start_slope": 0.060766741663978996,
+        "end_slope": 0.060766741663978774
+      }
+    }
+  ],
+  "globals": {
+    "min": -1.8815032051345562,
+    "max": 2.0555857434945413,
+    "mean": -1.1102230246251565e-16,
+    "std": 0.9999999999999999,
+    "peak2peak": 3.937088948629097,
+    "duration": 512,
+    "peak2peak_mean": 0.19831295597413362,
+    "peak2peak_q25": 0.07714500463214047,
+    "peak2peak_median": 0.17652270347334337,
+    "peak2peak_q75": 0.364600449983872,
+    "frequency": 0.001953125,
+    "histogram_peak": 0.20515393763886536
+  },
+  "occurrences": [
+    {
+      "event_index": 0,
+      "span": [
+        0,
+        38
+      ],
+      "primitives": [
+        {
+          "position": 0,
+          "type": "spike",
+          "level_dependent_features": {
+            "start_value": -1.8815032051345562,
+            "end_value": -1.8659538299491378
+          }
+        },
+        {
+          "position": 1,
+          "type": "plateau",
+          "level_dependent_features": {
+            "start_value": -1.8659538299491378,
+            "end_value": -1.8659538299491378
+          }
+        },
+        {
+          "position": 2,
+          "type": "spike",
+          "level_dependent_features": {
+            "start_value": -1.8659538299491378,
+            "end_value": -1.8596822909346213
+          }
+        },
+        {
+          "position": 3,
+          "type": "plateau",
+          "level_dependent_features": {
+            "start_value": -1.8596822909346213,
+            "end_value": -1.8596822909346213
+          }
+        },
+        {
+          "position": 4,
+          "type": "spike",
+          "level_dependent_features": {
+            "start_value": -1.8596822909346213,
+            "end_value": -1.844617617052678
+          }
+        },
+        {
+          "position": 5,
+          "type": "plateau",
+          "level_dependent_features": {
+            "start_value": -1.844617617052678,
+            "end_value": -1.844617617052678
+          }
+        },
+        {
+          "position": 6,
+          "type": "increase",
+          "level_dependent_features": {
+            "start_value": -1.844617617052678,
+            "end_value": -1.4800171670688058
+          }
+        }
+      ]
+    },
+    {
+      "event_index": 1,
+      "span": [
+        38,
+        76
+      ],
+      "primitives": [
+        {
+          "position": 0,
+          "type": "spike",
+          "level_dependent_features": {
+            "start_value": -1.4800171670688058,
+            "end_value": -1.4644677918833875
+          }
+        },
+        {
+          "position": 1,
+          "type": "plateau",
+          "level_dependent_features": {
+            "start_value": -1.4644677918833875,
+            "end_value": -1.4644677918833875
+          }
+        },
+        {
+          "position": 2,
+          "type": "spike",
+          "level_dependent_features": {
+            "start_value": -1.4644677918833875,
+            "end_value": -1.4581962528688708
+          }
+        },
+        {
+          "position": 3,
+          "type": "plateau",
+          "level_dependent_features": {
+            "start_value": -1.4581962528688708,
+            "end_value": -1.4581962528688708
+          }
+        },
+        {
+          "position": 4,
+          "type": "spike",
+          "level_dependent_features": {
+            "start_value": -1.4581962528688708,
+            "end_value": -1.4431315789869275
+          }
+        },
+        {
+          "position": 5,
+          "type": "plateau",
+          "level_dependent_features": {
+            "start_value": -1.4431315789869275,
+            "end_value": -1.4431315789869275
+          }
+        },
+        {
+          "position": 6,
+          "type": "increase",
+          "level_dependent_features": {
+            "start_value": -1.4431315789869275,
+            "end_value": -1.0785311290030555
+          }
+        }
+      ]
+    },
+    {
+      "event_index": 2,
+      "span": [
+        76,
+        114
+      ],
+      "primitives": [
+        {
+          "position": 0,
+          "type": "spike",
+          "level_dependent_features": {
+            "start_value": -1.0785311290030555,
+            "end_value": -1.062981753817637
+          }
+        },
+        {
+          "position": 1,
+          "type": "plateau",
+          "level_dependent_features": {
+            "start_value": -1.062981753817637,
+            "end_value": -1.062981753817637
+          }
+        },
+        {
+          "position": 2,
+          "type": "spike",
+          "level_dependent_features": {
+            "start_value": -1.062981753817637,
+            "end_value": -1.0567102148031207
+          }
+        },
+        {
+          "position": 3,
+          "type": "plateau",
+          "level_dependent_features": {
+            "start_value": -1.0567102148031207,
+            "end_value": -1.0567102148031207
+          }
+        },
+        {
+          "position": 4,
+          "type": "spike",
+          "level_dependent_features": {
+            "start_value": -1.0567102148031207,
+            "end_value": -1.0416455409211771
+          }
+        },
+        {
+          "position": 5,
+          "type": "plateau",
+          "level_dependent_features": {
+            "start_value": -1.0416455409211771,
+            "end_value": -1.0416455409211771
+          }
+        },
+        {
+          "position": 6,
+          "type": "increase",
+          "level_dependent_features": {
+            "start_value": -1.0416455409211771,
+            "end_value": -0.6770450909373051
+          }
+        }
+      ]
+    },
+    {
+      "event_index": 3,
+      "span": [
+        146,
+        184
+      ],
+      "primitives": [
+        {
+          "position": 0,
+          "type": "spike",
+          "level_dependent_features": {
+            "start_value": -0.44419824887496634,
+            "end_value": -0.428648873689548
+          }
+        },
+        {
+          "position": 1,
+          "type": "plateau",
+          "level_dependent_features": {
+            "start_value": -0.428648873689548,
+            "end_value": -0.428648873689548
+          }
+        },
+        {
+          "position": 2,
+          "type": "spike",
+          "level_dependent_features": {
+            "start_value": -0.428648873689548,
+            "end_value": -0.4223773346750316
+          }
+        },
+        {
+          "position": 3,
+          "type": "plateau",
+          "level_dependent_features": {
+            "start_value": -0.4223773346750316,
+            "end_value": -0.4223773346750316
+          }
+        },
+        {
+          "position": 4,
+          "type": "spike",
+          "level_dependent_features": {
+            "start_value": -0.4223773346750316,
+            "end_value": -0.40731266079308803
+          }
+        },
+        {
+          "position": 5,
+          "type": "plateau",
+          "level_dependent_features": {
+            "start_value": -0.40731266079308803,
+            "end_value": -0.40731266079308803
+          }
+        },
+        {
+          "position": 6,
+          "type": "increase",
+          "level_dependent_features": {
+            "start_value": -0.40731266079308803,
+            "end_value": -0.042712210809215986
+          }
+        }
+      ]
+    },
+    {
+      "event_index": 4,
+      "span": [
+        233,
+        271
+      ],
+      "primitives": [
+        {
+          "position": 0,
+          "type": "spike",
+          "level_dependent_features": {
+            "start_value": -0.35015263696880244,
+            "end_value": -0.33460326178338406
+          }
+        },
+        {
+          "position": 1,
+          "type": "plateau",
+          "level_dependent_features": {
+            "start_value": -0.33460326178338406,
+            "end_value": -0.33460326178338406
+          }
+        },
+        {
+          "position": 2,
+          "type": "spike",
+          "level_dependent_features": {
+            "start_value": -0.33460326178338406,
+            "end_value": -0.32833172276886763
+          }
+        },
+        {
+          "position": 3,
+          "type": "plateau",
+          "level_dependent_features": {
+            "start_value": -0.32833172276886763,
+            "end_value": -0.32833172276886763
+          }
+        },
+        {
+          "position": 4,
+          "type": "spike",
+          "level_dependent_features": {
+            "start_value": -0.32833172276886763,
+            "end_value": -0.31326704888692414
+          }
+        },
+        {
+          "position": 5,
+          "type": "plateau",
+          "level_dependent_features": {
+            "start_value": -0.31326704888692414,
+            "end_value": -0.31326704888692414
+          }
+        },
+        {
+          "position": 6,
+          "type": "increase",
+          "level_dependent_features": {
+            "start_value": -0.31326704888692414,
+            "end_value": 0.05133340109694793
+          }
+        }
+      ]
+    },
+    {
+      "event_index": 5,
+      "span": [
+        289,
+        327
+      ],
+      "primitives": [
+        {
+          "position": 0,
+          "type": "spike",
+          "level_dependent_features": {
+            "start_value": 0.16555717665103828,
+            "end_value": 0.18110655183645663
+          }
+        },
+        {
+          "position": 1,
+          "type": "plateau",
+          "level_dependent_features": {
+            "start_value": 0.18110655183645663,
+            "end_value": 0.18110655183645663
+          }
+        },
+        {
+          "position": 2,
+          "type": "spike",
+          "level_dependent_features": {
+            "start_value": 0.18110655183645663,
+            "end_value": 0.18737809085097307
+          }
+        },
+        {
+          "position": 3,
+          "type": "plateau",
+          "level_dependent_features": {
+            "start_value": 0.18737809085097307,
+            "end_value": 0.18737809085097307
+          }
+        },
+        {
+          "position": 4,
+          "type": "spike",
+          "level_dependent_features": {
+            "start_value": 0.18737809085097307,
+            "end_value": 0.20244276473291659
+          }
+        },
+        {
+          "position": 5,
+          "type": "plateau",
+          "level_dependent_features": {
+            "start_value": 0.20244276473291659,
+            "end_value": 0.20244276473291659
+          }
+        },
+        {
+          "position": 6,
+          "type": "increase",
+          "level_dependent_features": {
+            "start_value": 0.20244276473291659,
+            "end_value": 0.5670432147167886
+          }
+        }
+      ]
+    },
+    {
+      "event_index": 6,
+      "span": [
+        352,
+        390
+      ],
+      "primitives": [
+        {
+          "position": 0,
+          "type": "spike",
+          "level_dependent_features": {
+            "start_value": 0.3480781668330612,
+            "end_value": 0.3636275420184796
+          }
+        },
+        {
+          "position": 1,
+          "type": "plateau",
+          "level_dependent_features": {
+            "start_value": 0.3636275420184796,
+            "end_value": 0.3636275420184796
+          }
+        },
+        {
+          "position": 2,
+          "type": "spike",
+          "level_dependent_features": {
+            "start_value": 0.3636275420184796,
+            "end_value": 0.369899081032996
+          }
+        },
+        {
+          "position": 3,
+          "type": "plateau",
+          "level_dependent_features": {
+            "start_value": 0.369899081032996,
+            "end_value": 0.369899081032996
+          }
+        },
+        {
+          "position": 4,
+          "type": "spike",
+          "level_dependent_features": {
+            "start_value": 0.369899081032996,
+            "end_value": 0.3849637549149395
+          }
+        },
+        {
+          "position": 5,
+          "type": "plateau",
+          "level_dependent_features": {
+            "start_value": 0.3849637549149395,
+            "end_value": 0.3849637549149395
+          }
+        },
+        {
+          "position": 6,
+          "type": "increase",
+          "level_dependent_features": {
+            "start_value": 0.3849637549149395,
+            "end_value": 0.7495642048988113
+          }
+        }
+      ]
+    },
+    {
+      "event_index": 7,
+      "span": [
+        400,
+        438
+      ],
+      "primitives": [
+        {
+          "position": 0,
+          "type": "spike",
+          "level_dependent_features": {
+            "start_value": 0.8688719419733302,
+            "end_value": 0.8844213171587488
+          }
+        },
+        {
+          "position": 1,
+          "type": "plateau",
+          "level_dependent_features": {
+            "start_value": 0.8844213171587488,
+            "end_value": 0.8844213171587488
+          }
+        },
+        {
+          "position": 2,
+          "type": "spike",
+          "level_dependent_features": {
+            "start_value": 0.8844213171587488,
+            "end_value": 0.890692856173265
+          }
+        },
+        {
+          "position": 3,
+          "type": "plateau",
+          "level_dependent_features": {
+            "start_value": 0.890692856173265,
+            "end_value": 0.890692856173265
+          }
+        },
+        {
+          "position": 4,
+          "type": "spike",
+          "level_dependent_features": {
+            "start_value": 0.890692856173265,
+            "end_value": 0.9057575300552082
+          }
+        },
+        {
+          "position": 5,
+          "type": "plateau",
+          "level_dependent_features": {
+            "start_value": 0.9057575300552082,
+            "end_value": 0.9057575300552082
+          }
+        },
+        {
+          "position": 6,
+          "type": "increase",
+          "level_dependent_features": {
+            "start_value": 0.9057575300552082,
+            "end_value": 1.27035798003908
+          }
+        }
+      ]
+    },
+    {
+      "event_index": 8,
+      "span": [
+        458,
+        496
+      ],
+      "primitives": [
+        {
+          "position": 0,
+          "type": "spike",
+          "level_dependent_features": {
+            "start_value": 1.5380806004264571,
+            "end_value": 1.5536299756118757
+          }
+        },
+        {
+          "position": 1,
+          "type": "plateau",
+          "level_dependent_features": {
+            "start_value": 1.5536299756118757,
+            "end_value": 1.5536299756118757
+          }
+        },
+        {
+          "position": 2,
+          "type": "spike",
+          "level_dependent_features": {
+            "start_value": 1.5536299756118757,
+            "end_value": 1.559901514626392
+          }
+        },
+        {
+          "position": 3,
+          "type": "plateau",
+          "level_dependent_features": {
+            "start_value": 1.559901514626392,
+            "end_value": 1.559901514626392
+          }
+        },
+        {
+          "position": 4,
+          "type": "spike",
+          "level_dependent_features": {
+            "start_value": 1.559901514626392,
+            "end_value": 1.5749661885083353
+          }
+        },
+        {
+          "position": 5,
+          "type": "plateau",
+          "level_dependent_features": {
+            "start_value": 1.5749661885083353,
+            "end_value": 1.5749661885083353
+          }
+        },
+        {
+          "position": 6,
+          "type": "increase",
+          "level_dependent_features": {
+            "start_value": 1.5749661885083353,
+            "end_value": 1.939566638492207
+          }
+        }
+      ]
+    }
+  ],
+  "constraints": [
+    {
+      "template_index": 0,
+      "type": "spike",
+      "requested_count": 0,
+      "actual_count": 0,
+      "constraints": []
+    },
+    {
+      "template_index": 1,
+      "type": "plateau",
+      "requested_count": 0,
+      "actual_count": 0,
+      "constraints": []
+    },
+    {
+      "template_index": 2,
+      "type": "spike",
+      "requested_count": 0,
+      "actual_count": 0,
+      "constraints": []
+    },
+    {
+      "template_index": 3,
+      "type": "plateau",
+      "requested_count": 0,
+      "actual_count": 0,
+      "constraints": []
+    },
+    {
+      "template_index": 4,
+      "type": "spike",
+      "requested_count": 0,
+      "actual_count": 0,
+      "constraints": []
+    },
+    {
+      "template_index": 5,
+      "type": "plateau",
+      "requested_count": 0,
+      "actual_count": 0,
+      "constraints": []
+    },
+    {
+      "template_index": 6,
+      "type": "increase",
+      "requested_count": 1,
+      "actual_count": 1,
+      "constraints": [
+        {
+          "kind": "comparable",
+          "lhs": {
+            "primitive": 6,
+            "feature": "peak2peak"
+          },
+          "op": ">=",
+          "rhs": {
+            "primitive": "global",
+            "feature": "peak2peak_q75"
+          },
+          "realized_lhs": 0.3646004499838722,
+          "realized_rhs": 0.364600449983872,
+          "p_satisfied": 0.05,
+          "info": 2.995732273553991,
+          "salience": 0.9,
+          "weight": 2.696159046198592
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_constraints": 1,
+    "by_kind": {
+      "numerical": 0,
+      "comparable": 1
+    },
+    "primitives_by_constraint_count": {
+      "0": 6,
+      "1": 1
+    },
+    "actual_vs_requested_per_primitive": [
+      {
+        "template_index": 0,
+        "requested": 0,
+        "actual": 0
+      },
+      {
+        "template_index": 1,
+        "requested": 0,
+        "actual": 0
+      },
+      {
+        "template_index": 2,
+        "requested": 0,
+        "actual": 0
+      },
+      {
+        "template_index": 3,
+        "requested": 0,
+        "actual": 0
+      },
+      {
+        "template_index": 4,
+        "requested": 0,
+        "actual": 0
+      },
+      {
+        "template_index": 5,
+        "requested": 0,
+        "actual": 0
+      },
+      {
+        "template_index": 6,
+        "requested": 1,
+        "actual": 1
+      }
+    ]
+  },
+  "validation_warnings": []
+}
