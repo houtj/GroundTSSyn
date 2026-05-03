@@ -138,6 +138,7 @@ def run_steps_1_to_19(
         base.event_template,
         base.inter_event,
         rng,
+        extended.constraints,
         max_attempts=jitter_max_attempts,
     )
 
