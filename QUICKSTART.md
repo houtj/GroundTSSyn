@@ -87,6 +87,31 @@ jitter_randomness: 0.1      # 0 = identical occurrences, 1 = full-range jitter
 nb_constraints: [0, 3]      # constraints sampled per template position
 ```
 
+## Batch generation with TensorBoard
+
+Generate N samples (seeds 0 to N−1) and log statistics to TensorBoard:
+
+```bash
+uv run python -m tests.batch_generate --n 100
+tensorboard --logdir tests/out/tb
+```
+
+Key options:
+
+| Flag | Default | Description |
+|---|---|---|
+| `--n` | *(required)* | Number of samples to generate |
+| `--tb-dir` | `tests/out/tb` | TensorBoard log directory |
+| `--no-json` | off | Skip writing per-sample JSON files |
+| `--prior-k` | 200 | Empirical prior sample count |
+| `--jitter-max-attempts` | 200 | Max retries per jitter fallback |
+
+**What gets logged:**
+
+- *Scalars* (per seed): event count, event length, template size and per-type primitive counts, inter-event primitive counts, constraint breakdown (numerical / comparable / self), verification pass rate, jitter fallback count, and mean/min/max/std for every numerical feature of every primitive type (in-event and inter-event)
+- *Categorical counters* (per seed): per-value counts for string features such as `recovery_type`, `shape`, `waveform_shape`, `envelope_behavior`
+- *Histograms* (running, logged every 10 seeds): distributions of event length, template size, constraint info/salience, all primitive features, verification pass rate, jitter fallbacks
+
 ## Pipeline steps at a glance
 
 | Steps | Function | Output |

@@ -11,6 +11,10 @@ from data_gen.types import PrimitiveType
 PdfName = Literal["uniform", "linear", "skewed_normal"]
 
 
+class PostMatchConfig(BaseModel):
+    enabled: bool = True
+
+
 class Config(BaseModel):
     signal_length: int
 
@@ -54,6 +58,10 @@ class Config(BaseModel):
 
     drift_limit: bool
     drift_threshold: float
+
+    max_junction_angle_deg: float = 175.0
+
+    post_match: PostMatchConfig = PostMatchConfig()
 
     @classmethod
     def load(cls, path: str | Path = "config.yaml") -> "Config":

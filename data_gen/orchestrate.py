@@ -21,6 +21,42 @@ def _slope_pair(prim: Primitive) -> tuple[float, float]:
     return v[1] - v[0], v[-1] - v[-2]
 
 
+def _junction_interior_angle(s1: float, s2: float) -> float:
+    """Interior angle at the junction between two slope directions (degrees).
+
+    Treats each slope as the 2-D direction (1, s) in time-value space.
+    180° = smooth continuation (same slope), 0° = sharp reversal.
+    """
+    cos_theta = -(1.0 + s1 * s2) / (
+        np.sqrt(1.0 + s1 * s1) * np.sqrt(1.0 + s2 * s2)
+    )
+    return np.degrees(np.arccos(np.clip(cos_theta, -1.0, 1.0)))
+
+
+def _junction_angle_ok(
+    prev: Primitive | None,
+    current: Primitive,
+    next_: Primitive | None,
+    max_angle_deg: float,
+) -> bool:
+    """Return False when a non-plateau junction has interior angle >= max_angle_deg.
+
+    Plateau neighbors are skipped — a flat-to-slope transition is always visible.
+    """
+    if current.type == PrimitiveType.PLATEAU:
+        return True
+    cur_start, cur_end = _slope_pair(current)
+    if prev is not None and prev.type != PrimitiveType.PLATEAU:
+        _, prev_end = _slope_pair(prev)
+        if _junction_interior_angle(prev_end, cur_start) >= max_angle_deg:
+            return False
+    if next_ is not None and next_.type != PrimitiveType.PLATEAU:
+        next_start, _ = _slope_pair(next_)
+        if _junction_interior_angle(cur_end, next_start) >= max_angle_deg:
+            return False
+    return True
+
+
 def validate_slope(
     prev: Primitive | None, current: Primitive, next_: Primitive | None
 ) -> bool:
@@ -83,7 +119,9 @@ def _realize_with_retry(
         peak2peak = _sample_peak2peak(cfg, in_event, rng)
         definitive = _build_definitive(t, peak2peak, duration)
         prim = generate(t, definitive, schema, rng)
-        if validate_slope(prev, prim, next_):
+        if validate_slope(prev, prim, next_) and _junction_angle_ok(
+            prev, prim, next_, cfg.max_junction_angle_deg
+        ):
             return prim
     raise RealizationError(
         f"slope validation failed for {t.value} after {max_attempts} attempts"
@@ -218,8 +256,11 @@ def realize_event_template(
             return Event(primitives=primitives)
         first_start, _ = _slope_pair(primitives[0])
         _, last_end = _slope_pair(primitives[-1])
-        if first_start != last_end:
-            return Event(primitives=primitives)
+        if first_start == last_end:
+            continue
+        if _junction_interior_angle(last_end, first_start) >= cfg.max_junction_angle_deg:
+            continue
+        return Event(primitives=primitives)
 
     raise RealizationError(
         f"event template self-loop check failed after {template_max_attempts} attempts"

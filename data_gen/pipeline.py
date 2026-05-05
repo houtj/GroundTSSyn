@@ -10,7 +10,9 @@ from data_gen.constraints import ConstraintsResult, sample_constraints
 from data_gen.grounding import (
     BasicOutput,
     OccurrenceVerification,
+    apply_extra_occurrences,
     build_basic_output,
+    filter_failed_constraints,
     verify_constraints,
 )
 from data_gen.jitter import (
@@ -25,6 +27,7 @@ from data_gen.orchestrate import (
     realize_event_template,
     realize_inter_event_primitives,
 )
+from data_gen.post_match import ExtraOccurrence, find_extra_occurrences
 from data_gen.priors import EmpiricalPriors
 from data_gen.recompute import NormedFeatures, recompute_features
 from data_gen.schema import Schema
@@ -61,6 +64,8 @@ class FinalPipelineResult:
     jittered_features: NormedFeatures
     basic_output: BasicOutput
     verification: list[OccurrenceVerification]
+    post_match_extras: list[ExtraOccurrence]
+    post_match_indices: list[int]
 
 
 def run_steps_1_to_11(
@@ -161,6 +166,19 @@ def run_steps_1_to_19(
         z_signal, raw_jittered, template_types, extended.constraints
     )
     verification = verify_constraints(extended.constraints, jittered_features)
+    basic_output, verification = filter_failed_constraints(basic_output, verification)
+
+    extras: list[ExtraOccurrence] = []
+    extra_indices: list[int] = []
+    if cfg.post_match.enabled:
+        extras = find_extra_occurrences(
+            raw_jittered,
+            z_signal,
+            base.event_template,
+            [g.constraints for g in basic_output.grounding],
+            jittered_features.globals,
+        )
+        basic_output, extra_indices = apply_extra_occurrences(basic_output, extras)
 
     return FinalPipelineResult(
         extended=extended,
@@ -173,4 +191,6 @@ def run_steps_1_to_19(
         jittered_features=jittered_features,
         basic_output=basic_output,
         verification=verification,
+        post_match_extras=extras,
+        post_match_indices=extra_indices,
     )

@@ -3,6 +3,7 @@ from __future__ import annotations
 from pydantic import BaseModel
 
 from data_gen.constraints import Constraint, ConstraintsResult, evaluate_constraint
+from data_gen.post_match import ExtraOccurrence
 from data_gen.recompute import NormedFeatures
 from data_gen.types import ConcatResult, PrimitiveType
 
@@ -84,6 +85,63 @@ def build_basic_output(
     )
 
 
+def apply_extra_occurrences(
+    basic: BasicOutput,
+    extras: list[ExtraOccurrence],
+) -> tuple[BasicOutput, list[int]]:
+    """
+    Append post-match-discovered occurrences to `basic` and re-sort all
+    parallel per-occurrence lists by event-span start, so the output is
+    temporally consistent.
+
+    Returns the augmented BasicOutput and the list of indices (in the new
+    ordering) that came from the post-pass.
+    """
+    if not extras:
+        return basic, []
+
+    event_spans = [tuple(s) for s in basic.event_spans]
+    spans_by_pos: list[list[tuple[int, int]]] = [
+        [tuple(s) for s in g.spans] for g in basic.grounding
+    ]
+    is_extra: list[bool] = [False] * len(event_spans)
+
+    for occ in extras:
+        if len(occ.primitive_spans) != len(spans_by_pos):
+            raise ValueError(
+                f"extra occurrence has {len(occ.primitive_spans)} primitive spans "
+                f"but template has {len(spans_by_pos)} positions"
+            )
+        event_spans.append(tuple(occ.event_span))
+        for pos, span in enumerate(occ.primitive_spans):
+            spans_by_pos[pos].append(tuple(span))
+        is_extra.append(True)
+
+    order = sorted(range(len(event_spans)), key=lambda i: event_spans[i][0])
+    sorted_event_spans = [event_spans[i] for i in order]
+    sorted_spans_by_pos = [[spans[i] for i in order] for spans in spans_by_pos]
+    extra_indices = [new_i for new_i, old_i in enumerate(order) if is_extra[old_i]]
+
+    new_grounding = [
+        GroundedPrimitiveOut(
+            template_index=g.template_index,
+            type=g.type,
+            constraints=list(g.constraints),
+            spans=sorted_spans_by_pos[i],
+        )
+        for i, g in enumerate(basic.grounding)
+    ]
+
+    return (
+        BasicOutput(
+            signal=list(basic.signal),
+            grounding=new_grounding,
+            event_spans=sorted_event_spans,
+        ),
+        extra_indices,
+    )
+
+
 def verify_constraints(
     constraints_result: ConstraintsResult,
     jittered: NormedFeatures,
@@ -108,6 +166,52 @@ def verify_constraints(
                     )
                 )
     return out
+
+
+def filter_failed_constraints(
+    basic: BasicOutput,
+    verification: list[OccurrenceVerification],
+) -> tuple[BasicOutput, list[OccurrenceVerification]]:
+    """
+    Remove constraints that failed (satisfied=False) for any occurrence from
+    both the BasicOutput grounding and the verification list.
+    """
+    failed_pairs: set[tuple[int, int]] = set()
+    for v in verification:
+        if v.satisfied is False:
+            failed_pairs.add((v.template_index, v.constraint_index))
+
+    if not failed_pairs:
+        return basic, verification
+
+    new_grounding = []
+    for g in basic.grounding:
+        kept = [
+            c for idx, c in enumerate(g.constraints)
+            if (g.template_index, idx) not in failed_pairs
+        ]
+        new_grounding.append(
+            GroundedPrimitiveOut(
+                template_index=g.template_index,
+                type=g.type,
+                constraints=kept,
+                spans=g.spans,
+            )
+        )
+
+    new_verification = [
+        v for v in verification
+        if (v.template_index, v.constraint_index) not in failed_pairs
+    ]
+
+    return (
+        BasicOutput(
+            signal=list(basic.signal),
+            grounding=new_grounding,
+            event_spans=list(basic.event_spans),
+        ),
+        new_verification,
+    )
 
 
 def summarize_verification(

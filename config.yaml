@@ -1,9 +1,9 @@
 signal_length: 512
 
-nb_event_occurrence: [1, 5]
+nb_event_occurrence: [1, 3]
 pdf_nb_event_occurrence: "uniform"
 
-nb_primitives_in_event: [1, 10]
+nb_primitives_in_event: [1, 7]
 pdf_nb_primitives_in_event: "uniform"
 
 nb_inter_event_primitives: [0, 5]
@@ -47,10 +47,18 @@ pdf_inter_event_primitive_peak_2_peak: "uniform"
 nb_constraints: [0, 3]
 pdf_nb_constraints: [0.7, 0.1, 0.1, 0.1]
 
-jitter_randomness: 0.5
+jitter_randomness: 0.2
 
 numerical_constraint_weight: 0
 comparable_constraint_weight: 4
 
 drift_limit: true
 drift_threshold: 0.1
+
+max_junction_angle_deg: 175.0
+
+# Post-pass: after generation, scan inter-event runs for primitive-type
+# subsequences matching the event template; if all sampled constraints are
+# satisfied, append the run as an extra event occurrence.
+post_match:
+  enabled: true
