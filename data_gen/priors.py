@@ -24,6 +24,9 @@ class EmpiricalPriors:
 
     K: int = 200
     cache: dict[tuple[PrimitiveType, str], np.ndarray] = field(default_factory=dict)
+    string_cache: dict[tuple[PrimitiveType, str], dict[str, int]] = field(
+        default_factory=dict
+    )
 
     @classmethod
     def build(
@@ -46,6 +49,7 @@ class EmpiricalPriors:
         priors = cls(K=K)
         for ptype in PrimitiveType:
             samples_per_feature: dict[str, list[float]] = {}
+            string_counts: dict[str, dict[str, int]] = {}
             for _ in range(K):
                 definitive = _sample_definitive(cfg, ptype, rng)
                 try:
@@ -53,14 +57,24 @@ class EmpiricalPriors:
                 except Exception:
                     continue
                 feats = extract(prim.values, ptype)
+                # merge non-recoverable random string fields (oscillation only)
+                if ptype == PrimitiveType.OSCILLATION:
+                    for key in ("waveform_shape", "regularity"):
+                        if prim.random.get(key) is not None:
+                            feats[key] = prim.random[key]
                 for fname, fval in feats.items():
                     if isinstance(fval, (int, float)) and math.isfinite(float(fval)):
                         samples_per_feature.setdefault(fname, []).append(float(fval))
+                    elif isinstance(fval, str):
+                        counts = string_counts.setdefault(fname, {})
+                        counts[fval] = counts.get(fval, 0) + 1
             for fname, vals in samples_per_feature.items():
                 arr = np.asarray(vals, dtype=float)
                 if signal_std is not None and signal_std > 0:
                     arr = _z_scale(arr, ptype, fname, schema, signal_std)
                 priors.cache[(ptype, fname)] = arr
+            for fname, counts in string_counts.items():
+                priors.string_cache[(ptype, fname)] = counts
         return priors
 
     def values_for(self, ptype: PrimitiveType, feature: str) -> np.ndarray:
@@ -95,6 +109,14 @@ class EmpiricalPriors:
         self, ptype: PrimitiveType, feature: str, op: str, value: float
     ) -> float:
         return self.prob_op(ptype, feature, op, value)
+
+    def prob_self(self, ptype: PrimitiveType, feature: str, value: str) -> float:
+        counts = self.string_cache.get((ptype, feature), {})
+        total = sum(counts.values())
+        if total == 0:
+            return 0.5
+        c = counts.get(value, 0)
+        return float(np.clip(c / total, EPS, 1.0 - EPS))
 
     @staticmethod
     def info(p: float) -> float:

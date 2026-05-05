@@ -104,7 +104,7 @@ spike:
     generative: derived
     level_dependent: true
     constraint: [numerical, comparable]
-    aliases:[]
+    aliases: []
     description: "value at the spike peak; derived from start_value + peak2peak"
     salience: 0.8
     comparable_features:
@@ -334,13 +334,13 @@ dip:
     salience: 0.6
     comparable_features: [spike.sharpness]
   asymmetry:
-    type: continuous
+    type: categorical
     generative: derived
     level_dependent: false
-    constraint: [comparable]
+    constraint: [self]
     description: "fall_duration / rise_duration"
     salience: 0.3
-    comparable_features: [spike.asymmetry]
+    comparable_features: []
   rise_slope:
     type: continuous
     generative: derived
@@ -365,22 +365,18 @@ dip:
     type: continuous
     generative: derived
     level_dependent: false
-    constraint: [numerical, comparable]
+    constraint: []
     description: "values[1] - values[0] at the leading edge; step-9 change-point check"
-    salience: 0.4
-    comparable_features:
-      [dip.end_slope, dip.rise_slope, dip.fall_slope,
-       spike.start_slope, spike.end_slope, increase.slope, decrease.slope]
+    salience: 0.0
+    comparable_features: []
   end_slope:
     type: continuous
     generative: derived
     level_dependent: false
-    constraint: [numerical, comparable]
+    constraint: []
     description: "values[-1] - values[-2] at the trailing edge; step-9 change-point check"
-    salience: 0.4
-    comparable_features:
-      [dip.start_slope, dip.rise_slope, dip.fall_slope,
-       spike.start_slope, spike.end_slope, increase.slope, decrease.slope]
+    salience: 0.0
+    comparable_features: []
 
 # ---------------------------------------------------------------------------
 # increase — gradual upward ramp (sharp slope renders as "step up" at
@@ -568,28 +564,24 @@ decrease:
     type: categorical
     generative: derived
     level_dependent: false
-    constraint: []
+    constraint: [self]
     description: "convex | concave | linear — curvature direction of the ramp; derived from shape"
   start_slope:
     type: continuous
     generative: derived
     level_dependent: false
-    constraint: [numerical, comparable]
+    constraint: []
     description: "values[1] - values[0] at the leading edge; step-9 change-point check"
-    salience: 0.4
-    comparable_features:
-      [decrease.end_slope, decrease.slope, increase.slope,
-       spike.start_slope, spike.end_slope, dip.start_slope, dip.end_slope]
+    salience: 0.0
+    comparable_features: []
   end_slope:
     type: continuous
     generative: derived
     level_dependent: false
-    constraint: [numerical, comparable]
+    constraint: []
     description: "values[-1] - values[-2] at the trailing edge; step-9 change-point check"
-    salience: 0.4
-    comparable_features:
-      [decrease.start_slope, decrease.slope, increase.slope,
-       spike.start_slope, spike.end_slope, dip.start_slope, dip.end_slope]
+    salience: 0.0
+    comparable_features: []
 
 # ---------------------------------------------------------------------------
 # oscillation — cyclic pattern

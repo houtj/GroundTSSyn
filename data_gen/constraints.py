@@ -53,7 +53,17 @@ class ComparableConstraint(BaseModel):
     weight: float
 
 
-Constraint = Union[NumericalConstraint, ComparableConstraint]
+class SelfConstraint(BaseModel):
+    kind: Literal["self"] = "self"
+    target: FeatureRef
+    value: str
+    p_satisfied: float
+    info: float
+    salience: float
+    weight: float
+
+
+Constraint = Union[NumericalConstraint, ComparableConstraint, SelfConstraint]
 
 
 class GroundedPrimitive(BaseModel):
@@ -100,10 +110,11 @@ def sample_constraints(
         candidates_cmp = _enumerate_comparable(
             pos, ptype, feats, template_types, first_occ, normed.globals, schema, priors
         )
+        candidates_self = _enumerate_self(pos, ptype, feats, schema, priors)
 
         n_requested = _sample_count(cfg, rng)
         picked = _sample_pool(
-            candidates_num, candidates_cmp, n_requested, cfg, rng
+            candidates_num, candidates_cmp, candidates_self, n_requested, cfg, rng
         )
         grounded.append(
             GroundedPrimitive(
@@ -132,6 +143,7 @@ def _sample_count(cfg: Config, rng: np.random.Generator) -> int:
 def _sample_pool(
     candidates_num: list[Constraint],
     candidates_cmp: list[Constraint],
+    candidates_self: list[Constraint],
     n: int,
     cfg: Config,
     rng: np.random.Generator,
@@ -140,13 +152,15 @@ def _sample_pool(
     pools: dict[str, list[Constraint]] = {
         "numerical": list(candidates_num),
         "comparable": list(candidates_cmp),
+        "self": list(candidates_self),
     }
     weights = {
         "numerical": float(cfg.numerical_constraint_weight),
         "comparable": float(cfg.comparable_constraint_weight),
+        "self": float(cfg.comparable_constraint_weight),
     }
     while len(picked) < n:
-        active = [k for k in ("numerical", "comparable") if pools[k]]
+        active = [k for k in ("numerical", "comparable", "self") if pools[k]]
         if not active:
             break
         ws = np.asarray([weights[k] for k in active], dtype=float)
@@ -270,6 +284,39 @@ def _enumerate_comparable(
                             weight=weight,
                         )
                     )
+    return out
+
+
+def _enumerate_self(
+    pos: int,
+    ptype: PrimitiveType,
+    feats: dict[str, Any],
+    schema: Schema,
+    priors: EmpiricalPriors,
+) -> list[Constraint]:
+    out: list[Constraint] = []
+    for fname, spec in schema.features(ptype).items():
+        if "self" not in spec.constraint:
+            continue
+        v = feats.get(fname)
+        if not isinstance(v, str):
+            continue
+        salience = schema.salience(ptype, fname)
+        p = priors.prob_self(ptype, fname, v)
+        if p <= P_LOW or p >= P_HIGH:
+            continue
+        info = -math.log(max(p, EPS))
+        weight = salience * info
+        out.append(
+            SelfConstraint(
+                target=FeatureRef(primitive=pos, feature=fname),
+                value=v,
+                p_satisfied=p,
+                info=info,
+                salience=salience,
+                weight=weight,
+            )
+        )
     return out
 
 
@@ -413,6 +460,15 @@ def evaluate_constraint(
     a single occurrence. Returns True/False, or None if the relevant feature
     is missing or non-finite (treat as "cannot evaluate").
     """
+    if isinstance(c, SelfConstraint):
+        pos = c.target.primitive
+        if not isinstance(pos, int) or pos < 0 or pos >= len(feats_by_pos):
+            return None
+        v = feats_by_pos[pos].get(c.target.feature)
+        if v is None:
+            return None
+        return v == c.value
+
     if isinstance(c, NumericalConstraint):
         pos = c.target.primitive
         if not isinstance(pos, int) or pos < 0 or pos >= len(feats_by_pos):

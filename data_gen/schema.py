@@ -17,7 +17,7 @@ class FeatureSpec(BaseModel):
     type: Literal["continuous", "integer", "categorical"]
     generative: Generative
     level_dependent: bool
-    constraint: list[Literal["numerical", "comparable"]] = Field(default_factory=list)
+    constraint: list[Literal["numerical", "comparable", "self"]] = Field(default_factory=list)
     aliases: list[str] | None = None
     description: str
 

@@ -17,6 +17,11 @@ def _fwhm(values: np.ndarray, baseline: float, peak: float) -> float:
     return float(idxs[-1] - idxs[0] + 1)
 
 
+def _classify_asymmetry(a: int, b: int) -> str:
+    """Return 'symmetric' when |a - b| <= 1, else 'asymmetric'."""
+    return "symmetric" if abs(a - b) <= 1 else "asymmetric"
+
+
 def _classify_shape(values: np.ndarray, eps: float = 0.1) -> str:
     """Classify a monotonic ramp as linear / convex / concave by midpoint deviation."""
     n = len(values)
@@ -54,7 +59,7 @@ def extract_spike(values: list[float]) -> dict[str, Any]:
     )
     width = _fwhm(v, start_value, peak)
     sharpness = peak2peak / width if width > 0 else float("nan")
-    asymmetry = rise_duration / fall_duration if fall_duration > 0 else float("inf")
+    asymmetry = _classify_asymmetry(rise_duration, fall_duration)
     rise_slope = peak2peak / rise_duration if rise_duration > 0 else float("inf")
     fall_slope = peak2peak / fall_duration if fall_duration > 0 else float("inf")
     start_slope, end_slope = _slopes(v)
@@ -91,7 +96,7 @@ def extract_dip(values: list[float]) -> dict[str, Any]:
     )
     width = _fwhm(v, start_value, trough)
     sharpness = peak2peak / width if width > 0 else float("nan")
-    asymmetry = fall_duration / rise_duration if rise_duration > 0 else float("inf")
+    asymmetry = _classify_asymmetry(fall_duration, rise_duration)
     rise_slope = peak2peak / rise_duration if rise_duration > 0 else float("inf")
     fall_slope = peak2peak / fall_duration if fall_duration > 0 else float("inf")
     start_slope, end_slope = _slopes(v)

@@ -11,6 +11,7 @@ from data_gen.constraints import (
     Constraint,
     ConstraintsResult,
     NumericalConstraint,
+    SelfConstraint,
     evaluate_constraint,
 )
 from data_gen.features import extract
@@ -259,13 +260,13 @@ ConstraintStage = Literal["dur", "intra", "cross", "defer"]
 
 
 def _constraint_pos_refs(c: Constraint) -> set[Any]:
-    if isinstance(c, NumericalConstraint):
+    if isinstance(c, (NumericalConstraint, SelfConstraint)):
         return {c.target.primitive}
     return {c.lhs.primitive, c.rhs.primitive}
 
 
 def _constraint_feature_names(c: Constraint) -> set[str]:
-    if isinstance(c, NumericalConstraint):
+    if isinstance(c, (NumericalConstraint, SelfConstraint)):
         return {c.target.feature}
     return {c.lhs.feature, c.rhs.feature}
 
@@ -290,7 +291,10 @@ def _feat_level_dependent(
 def _is_enforceable(
     c: Constraint, schema: Schema, template_types: list[PrimitiveType]
 ) -> bool:
-    """All referenced features must be level_dependent=false; no global refs."""
+    """All referenced features must be level_dependent=false; no global refs.
+    Self constraints are categorical and cannot be enforced by jitter."""
+    if isinstance(c, SelfConstraint):
+        return False
     if isinstance(c, NumericalConstraint):
         refs = [(c.target.primitive, c.target.feature)]
     else:
