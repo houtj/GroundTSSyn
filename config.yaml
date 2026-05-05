@@ -47,7 +47,7 @@ pdf_inter_event_primitive_peak_2_peak: "uniform"
 nb_constraints: [0, 3]
 pdf_nb_constraints: [0.7, 0.1, 0.1, 0.1]
 
-jitter_randomness: 0.5
+jitter_randomness: 0.1
 
 numerical_constraint_weight: 0
 comparable_constraint_weight: 4

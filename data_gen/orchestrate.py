@@ -140,15 +140,34 @@ def _realize_event_template_drift_limited(
 
     if var_order:
         last = var_order[-1]
-        sign = 1.0 if types[last] == PrimitiveType.INCREASE else -1.0
+        D = d_other + d_partial
         thres = cfg.drift_threshold
-        low = (-thres - d_other - d_partial) * sign
-        high = (thres - d_other - d_partial) * sign
+
+        chosen_type = types[last]
+        sign = 1.0 if chosen_type == PrimitiveType.INCREASE else -1.0
+        low = (-thres - D) * sign
+        high = (thres - D) * sign
         if low > high:
             low, high = high, low
-        v_last = float(rng.uniform(low, high))
-        definitive = _build_definitive(types[last], v_last, durations[last])
-        primitives[last] = generate(types[last], definitive, schema, rng)
+
+        if high < 0.0:
+            # No direction-preserving peak2peak exists; flip type so the
+            # contribution sign reverses and the feasible window is positive.
+            chosen_type = (
+                PrimitiveType.DECREASE
+                if chosen_type == PrimitiveType.INCREASE
+                else PrimitiveType.INCREASE
+            )
+            sign = -sign
+            low = (-thres - D) * sign
+            high = (thres - D) * sign
+            if low > high:
+                low, high = high, low
+            types[last] = chosen_type
+
+        v_last = float(rng.uniform(max(low, 0.0), high))
+        definitive = _build_definitive(chosen_type, v_last, durations[last])
+        primitives[last] = generate(chosen_type, definitive, schema, rng)
 
     return Event(primitives=[p for p in primitives if p is not None])
 
