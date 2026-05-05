@@ -39,21 +39,32 @@ def _per_type_bounds(
 
 
 def sample_primitive_types(
-    cfg: Config, count: int, rng: np.random.Generator
+    cfg: Config,
+    count: int,
+    rng: np.random.Generator,
+    *,
+    prev_type: PrimitiveType | None = None,
+    next_type: PrimitiveType | None = None,
 ) -> list[PrimitiveType]:
-    """Weighted-categorical sampling with adjacent-plateau suppression."""
+    """Weighted-categorical sampling with adjacent-plateau suppression via resampling.
+
+    prev_type: type immediately before this sequence (e.g. last event-template
+               primitive for non-leading inter-event slots).
+    next_type: type immediately after this sequence (e.g. first event-template
+               primitive for non-trailing inter-event slots).
+    """
     types, weights = cfg.primitive_weights()
     out: list[PrimitiveType] = []
-    for _ in range(count):
-        if out and out[-1] == PrimitiveType.PLATEAU:
-            filtered = [
-                (t, w) for t, w in zip(types, weights) if t != PrimitiveType.PLATEAU
-            ]
-            ts = [t for t, _ in filtered]
-            ws = [w for _, w in filtered]
-            t = sample_weighted_categorical(ts, ws, rng)
-        else:
+    for i in range(count):
+        is_last = i == count - 1
+        eff_prev = prev_type if i == 0 else out[-1]
+        while True:
             t = sample_weighted_categorical(types, weights, rng)
+            if eff_prev == PrimitiveType.PLATEAU and t == PrimitiveType.PLATEAU:
+                continue
+            if is_last and next_type == PrimitiveType.PLATEAU and t == PrimitiveType.PLATEAU:
+                continue
+            break
         out.append(t)
     return out
 
@@ -153,9 +164,13 @@ def _plan_once(cfg: Config, rng: np.random.Generator) -> Layout:
     event_template_types = sample_primitive_types(cfg, nb_in_event, rng)
 
     # Step 5: inter-event primitive types per slot
-    inter_event_types = [
-        sample_primitive_types(cfg, k, rng) for k in inter_event_counts
-    ]
+    # Pass boundary types so the first/last primitive of each slot cannot form
+    # an adjacent plateau pair with the event template primitive it abuts.
+    inter_event_types = []
+    for k, count in enumerate(inter_event_counts):
+        p = event_template_types[-1] if k > 0 and event_template_types else None
+        n = event_template_types[0] if k < nb_events and event_template_types else None
+        inter_event_types.append(sample_primitive_types(cfg, count, rng, prev_type=p, next_type=n))
 
     # Step 6: event length (corrected formula)
     sum_inter_min = sum(inter_event_counts) * cfg.min_primitive_length
