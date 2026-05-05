@@ -90,6 +90,69 @@ def _realize_with_retry(
     )
 
 
+def _realize_event_template_drift_limited(
+    cfg: Config,
+    layout: Layout,
+    schema: Schema,
+    rng: np.random.Generator,
+) -> Event:
+    """
+    Drift-constrained event template realization (used when cfg.drift_limit).
+
+    Realize spike/dip/oscillation/plateau in their positions first, then
+    realize increase/decrease in random order; the last inc/dec's peak2peak
+    is solved so total event drift falls in [-drift_threshold, +drift_threshold].
+    Slope validation is dropped in this flow since realization is no longer
+    in temporal order and the forced last position cannot be re-rolled.
+    """
+    types = layout.event_template_types
+    durations = layout.event_template_durations
+    n = len(types)
+    primitives: list[Primitive | None] = [None] * n
+
+    fixed_pos = [
+        i for i, t in enumerate(types)
+        if t not in (PrimitiveType.INCREASE, PrimitiveType.DECREASE)
+    ]
+    var_pos = [
+        i for i, t in enumerate(types)
+        if t in (PrimitiveType.INCREASE, PrimitiveType.DECREASE)
+    ]
+
+    for i in fixed_pos:
+        p2p = _sample_peak2peak(cfg, in_event=True, rng=rng)
+        definitive = _build_definitive(types[i], p2p, durations[i])
+        primitives[i] = generate(types[i], definitive, schema, rng)
+
+    d_other = sum(
+        primitives[i].values[-1] - primitives[i].values[0] for i in fixed_pos
+    )
+
+    var_order = list(var_pos)
+    rng.shuffle(var_order)
+
+    d_partial = 0.0
+    for i in var_order[:-1]:
+        p2p = _sample_peak2peak(cfg, in_event=True, rng=rng)
+        definitive = _build_definitive(types[i], p2p, durations[i])
+        primitives[i] = generate(types[i], definitive, schema, rng)
+        d_partial += primitives[i].values[-1] - primitives[i].values[0]
+
+    if var_order:
+        last = var_order[-1]
+        sign = 1.0 if types[last] == PrimitiveType.INCREASE else -1.0
+        thres = cfg.drift_threshold
+        low = (-thres - d_other - d_partial) * sign
+        high = (thres - d_other - d_partial) * sign
+        if low > high:
+            low, high = high, low
+        v_last = float(rng.uniform(low, high))
+        definitive = _build_definitive(types[last], v_last, durations[last])
+        primitives[last] = generate(types[last], definitive, schema, rng)
+
+    return Event(primitives=[p for p in primitives if p is not None])
+
+
 def realize_event_template(
     cfg: Config,
     layout: Layout,
@@ -110,6 +173,9 @@ def realize_event_template(
     durations = layout.event_template_durations
     if not types:
         return Event(primitives=[])
+
+    if cfg.drift_limit:
+        return _realize_event_template_drift_limited(cfg, layout, schema, rng)
 
     for _ in range(template_max_attempts):
         primitives: list[Primitive] = []

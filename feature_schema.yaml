@@ -94,10 +94,25 @@ spike:
     scope_source: fixed
     salience: 0.7
     comparable_features:
-      [dip.start_value, dip.end_value, increase.start_value, increase.end_value,
-       decrease.start_value, decrease.end_value, oscillation.start_value,
-       oscillation.end_value, oscillation.mean_value, plateau.start_value,
-       spike.end_value, global.min, global.max, global.mean]
+      [dip.start_value, dip.end_value, spike.peak_value, spike.end_value,
+       increase.start_value, increase.end_value, decrease.start_value,
+       decrease.end_value, oscillation.start_value, oscillation.end_value,
+       oscillation.mean_value, plateau.start_value, global.min, global.max,
+       global.mean]
+  peak_value:
+    type: continuous
+    generative: derived
+    level_dependent: true
+    constraint: [numerical, comparable]
+    aliases:[]
+    description: "value at the spike peak; derived from start_value + peak2peak"
+    salience: 0.8
+    comparable_features:
+      [dip.start_value, dip.end_value, spike.peak_value, spike.end_value,
+       increase.start_value, increase.end_value, decrease.start_value,
+       decrease.end_value, oscillation.start_value, oscillation.end_value,
+       oscillation.mean_value, plateau.start_value, global.min, global.max,
+       global.mean]
   peak2peak:
     type: continuous
     generative: definitive
@@ -108,9 +123,8 @@ spike:
     scope_source: config
     salience: 0.9
     comparable_features:
-      [dip.peak2peak, increase.peak2peak, decrease.peak2peak, oscillation.peak2peak,
-       global.peak2peak, global.std, global.peak2peak_mean, global.peak2peak_median,
-       global.peak2peak_q25, global.peak2peak_q75]
+      [dip.peak2peak, spike.peak2peak, increase.peak2peak, decrease.peak2peak, oscillation.peak2peak,
+       global.peak2peak]
   duration:
     type: integer
     generative: definitive
@@ -131,7 +145,7 @@ spike:
     description: "samples from baseline departure to peak; runtime-clamped to [1, duration - 1]"
     scope: [1, 6]   # static upper bound = max_spike_length - 1
     pdf: uniform
-    salience: 0.5
+    salience: 0.2
     comparable_features:
       [spike.fall_duration, dip.rise_duration, dip.fall_duration]
   recovery:
@@ -150,7 +164,7 @@ spike:
     level_dependent: false
     constraint: [numerical, comparable]
     description: "duration - rise_duration"
-    salience: 0.5
+    salience: 0.2
     comparable_features:
       [spike.rise_duration, dip.rise_duration, dip.fall_duration]
   end_value:
@@ -171,16 +185,16 @@ spike:
     level_dependent: false
     constraint: [comparable]
     description: "peak2peak / duration"
-    salience: 0.6
+    salience: 0.8
     comparable_features: [dip.sharpness]
   asymmetry:
-    type: continuous
+    type: categorical
     generative: derived
     level_dependent: false
-    constraint: [comparable]
+    constraint: [self]
     description: "rise_duration / fall_duration"
     salience: 0.3
-    comparable_features: [dip.asymmetry]
+    comparable_features: []
   rise_slope:
     type: continuous
     generative: derived
@@ -205,22 +219,20 @@ spike:
     type: continuous
     generative: derived
     level_dependent: false
-    constraint: [numerical, comparable]
+    constraint: []
     description: "values[1] - values[0] at the leading edge; step-9 change-point check"
-    salience: 0.4
+    salience: 0.0
     comparable_features:
-      [spike.end_slope, spike.rise_slope, spike.fall_slope,
-       dip.start_slope, dip.end_slope, increase.slope, decrease.slope]
+      []
   end_slope:
     type: continuous
     generative: derived
     level_dependent: false
-    constraint: [numerical, comparable]
+    constraint: []
     description: "values[-1] - values[-2] at the trailing edge; step-9 change-point check"
-    salience: 0.4
+    salience: 0.0
     comparable_features:
-      [spike.start_slope, spike.rise_slope, spike.fall_slope,
-       dip.start_slope, dip.end_slope, increase.slope, decrease.slope]
+      []
 
 # ---------------------------------------------------------------------------
 # dip — downward sharp transient (mirror of spike)
@@ -453,28 +465,26 @@ increase:
     type: categorical
     generative: derived
     level_dependent: false
-    constraint: []
+    constraint: [self]
     description: "convex | concave | linear — curvature direction of the ramp; derived from shape"
   start_slope:
     type: continuous
     generative: derived
     level_dependent: false
-    constraint: [numerical, comparable]
+    constraint: []
     description: "values[1] - values[0] at the leading edge; step-9 change-point check"
-    salience: 0.4
+    salience: 0.0
     comparable_features:
-      [increase.end_slope, increase.slope, decrease.slope,
-       spike.start_slope, spike.end_slope, dip.start_slope, dip.end_slope]
+      []
   end_slope:
     type: continuous
     generative: derived
     level_dependent: false
-    constraint: [numerical, comparable]
+    constraint: []
     description: "values[-1] - values[-2] at the trailing edge; step-9 change-point check"
-    salience: 0.4
+    salience: 0.0
     comparable_features:
-      [increase.start_slope, increase.slope, decrease.slope,
-       spike.start_slope, spike.end_slope, dip.start_slope, dip.end_slope]
+      []
 
 # ---------------------------------------------------------------------------
 # decrease — gradual downward ramp (mirror of increase).
@@ -658,12 +668,12 @@ oscillation:
     salience: 0.3
     comparable_features: []
   regularity:
-    type: continuous
+    type: categorical
     generative: random
     level_dependent: false
-    constraint: [comparable]
+    constraint: [self]
     description: "1 = perfectly periodic, 0 = irregular"
-    scope: [0.7, 1.0]
+    scope: [regular, irregular]
     pdf: uniform
     salience: 0.2
     comparable_features: []
@@ -671,7 +681,7 @@ oscillation:
     type: categorical
     generative: random
     level_dependent: false
-    constraint: []
+    constraint: [self]
     description: "waveform family"
     scope: [sinusoidal, square, triangle, sawtooth]
     pdf: uniform
@@ -696,10 +706,10 @@ oscillation:
       [oscillation.duration, spike.duration, dip.duration, increase.duration,
        decrease.duration, plateau.duration, global.duration]
   n_cycles:
-    type: continuous
+    type: integer
     generative: derived
     level_dependent: false
-    constraint: [numerical, comparable]
+    constraint: [self]
     description: "number of complete cycles in the primitive"
     salience: 0.4
     comparable_features: []
@@ -707,7 +717,7 @@ oscillation:
     type: categorical
     generative: derived
     level_dependent: false
-    constraint: []
+    constraint: [self]
     description: "upward | downward | stationary — sign of envelope_end - envelope_start"
   mean_value:
     type: continuous
@@ -737,22 +747,20 @@ oscillation:
     type: continuous
     generative: derived
     level_dependent: false
-    constraint: [numerical, comparable]
+    constraint: []
     description: "values[1] - values[0]; step-9 change-point check"
-    salience: 0.4
+    salience: 0.0
     comparable_features:
-      [oscillation.end_slope, increase.slope, decrease.slope,
-       spike.start_slope, spike.end_slope, dip.start_slope, dip.end_slope]
+      []
   end_slope:
     type: continuous
     generative: derived
     level_dependent: false
     constraint: [numerical, comparable]
     description: "values[-1] - values[-2]; step-9 change-point check"
-    salience: 0.4
+    salience: 0.0
     comparable_features:
-      [oscillation.start_slope, increase.slope, decrease.slope,
-       spike.start_slope, spike.end_slope, dip.start_slope, dip.end_slope]
+      []
 
 # ---------------------------------------------------------------------------
 # plateau — constant / quiescent segment (formerly flat_region).
@@ -847,12 +855,6 @@ global:
     level_dependent: false
     constraint: [comparable]
     description: "signal_length in samples"
-  peak2peak_mean:
-    type: continuous
-    generative: derived
-    level_dependent: false
-    constraint: [comparable]
-    description: "mean of per-primitive peak2peak values across all primitives in the signal"
   peak2peak_q25:
     type: continuous
     generative: derived

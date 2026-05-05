@@ -52,6 +52,9 @@ class Config(BaseModel):
     numerical_constraint_weight: float
     comparable_constraint_weight: float
 
+    drift_limit: bool
+    drift_threshold: float
+
     @classmethod
     def load(cls, path: str | Path = "config.yaml") -> "Config":
         with open(path) as f:
