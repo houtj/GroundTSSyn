@@ -179,7 +179,7 @@ spike:
     constraint: [self]
     description: "symmetric | asymmetric — whether rise and fall durations are approximately equal"
     scope: [symmetric, asymmetric]
-    salience: 0.3
+    salience: 0.5
   rise_slope:
     type: continuous
     generative: derived
@@ -253,7 +253,7 @@ dip:
     description: "samples from baseline departure to trough; runtime-clamped to [1, duration - 1]"
     scope: [1, 6]   # static upper bound = max_spike_length - 1
     pdf: uniform
-    salience: 0.5
+    salience: 0.3
     comparable_domain: duration
   recovery:
     type: continuous
@@ -276,7 +276,7 @@ dip:
     level_dependent: false
     constraint: [numerical, comparable]
     description: "duration - fall_duration"
-    salience: 0.5
+    salience: 0.3
     comparable_domain: duration
   end_value:
     type: continuous
@@ -292,7 +292,7 @@ dip:
     level_dependent: false
     constraint: [comparable]
     description: "peak2peak / duration"
-    salience: 0.6
+    salience: 0.8
     comparable_domain: sharpness
   asymmetry:
     type: categorical
@@ -301,7 +301,7 @@ dip:
     constraint: [self]
     description: "symmetric | asymmetric — whether fall and rise durations are approximately equal"
     scope: [symmetric, asymmetric]
-    salience: 0.3
+    salience: 0.5
   rise_slope:
     type: continuous
     generative: derived
@@ -524,7 +524,7 @@ oscillation:
     description: "1 = perfectly periodic, 0 = irregular"
     scope: [regular, irregular]
     pdf: uniform
-    salience: 0.2
+    salience: 0.4
   waveform_shape:
     type: categorical
     generative: random
@@ -539,7 +539,7 @@ oscillation:
     level_dependent: false
     constraint: [numerical, comparable]
     description: "samples per cycle (= 1 / frequency)"
-    salience: 0.7
+    salience: 0.4
     comparable_domain: duration
   n_cycles:
     type: integer
@@ -554,6 +554,7 @@ oscillation:
     level_dependent: false
     constraint: [self]
     description: "trend of the oscillation's DC center line over the primitive: upward | flat | downward"
+    salience: 0.3
   mean_value:
     type: continuous
     generative: derived
@@ -607,7 +608,7 @@ plateau:
     level_dependent: true
     constraint: [numerical, comparable]
     description: "value at primitive end (= start_value for plateau)"
-    salience: 0.7
+    salience: 0.2
     comparable_domain: absolute_value
 
 # ---------------------------------------------------------------------------
