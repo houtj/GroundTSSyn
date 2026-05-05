@@ -21,6 +21,7 @@ from data_gen.jitter import (
     build_jittered_occurrences,
 )
 from data_gen.layout import Layout, plan_layout
+from data_gen.negation import NegativeGrounding, build_negative_groundings
 from data_gen.normalize import z_normalize_with_stats
 from data_gen.orchestrate import (
     assemble_layout,
@@ -66,6 +67,7 @@ class FinalPipelineResult:
     verification: list[OccurrenceVerification]
     post_match_extras: list[ExtraOccurrence]
     post_match_indices: list[int]
+    neg_groundings: list[NegativeGrounding]
 
 
 def run_steps_1_to_11(
@@ -180,6 +182,20 @@ def run_steps_1_to_19(
         )
         basic_output, extra_indices = apply_extra_occurrences(basic_output, extras)
 
+    neg_groundings = []
+    if cfg.negation.enabled:
+        neg_groundings = build_negative_groundings(
+            [g.type for g in basic_output.grounding],
+            [list(g.constraints) for g in basic_output.grounding],
+            raw_jittered,
+            z_signal,
+            jittered_features.globals,
+            schema,
+            rng,
+            max_attempts=cfg.negation.max_attempts,
+            target_n=cfg.negation.target_n,
+        )
+
     return FinalPipelineResult(
         extended=extended,
         occurrences=occurrences,
@@ -193,4 +209,5 @@ def run_steps_1_to_19(
         verification=verification,
         post_match_extras=extras,
         post_match_indices=extra_indices,
+        neg_groundings=neg_groundings,
     )

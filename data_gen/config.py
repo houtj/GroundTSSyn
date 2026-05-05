@@ -15,6 +15,12 @@ class PostMatchConfig(BaseModel):
     enabled: bool = True
 
 
+class NegationConfig(BaseModel):
+    enabled: bool = True
+    max_attempts: int = 10
+    target_n: int = 3
+
+
 class Config(BaseModel):
     signal_length: int
 
@@ -62,6 +68,7 @@ class Config(BaseModel):
     max_junction_angle_deg: float = 175.0
 
     post_match: PostMatchConfig = PostMatchConfig()
+    negation: NegationConfig = NegationConfig()
 
     @classmethod
     def load(cls, path: str | Path = "config.yaml") -> "Config":

@@ -62,3 +62,10 @@ max_junction_angle_deg: 175.0
 # satisfied, append the run as an extra event occurrence.
 post_match:
   enabled: true
+
+# Negative-description generation: mutate the positive grounding and verify
+# that the result does not match anywhere in the signal.
+negation:
+  enabled: true
+  max_attempts: 10  # total mutation tries per sample
+  target_n: 3       # desired number of verified negatives per sample
