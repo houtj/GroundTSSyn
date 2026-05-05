@@ -33,8 +33,8 @@ Note 3.2 (resolved): feature_schema.yaml now carries a `level_dependent: true|fa
 
 15. (after 14) If numerical, choose feature (f) 1 from features that are numerical-constraintable. Choose an operation and a value based on the current feature value. See "Distinctiveness scoring" below for how to pick f1 and the threshold.
 
-16. (after 14) If comparable, choose feature (f) 1 from features that are comparable-constraintable. Choose primitive 2 and feature 2 from feature 1's `comparable_features` list (which may include `global.*` references — global is a pseudo-primitive whose features are signal-level statistics: min, max, mean, std, peak2peak, etc.). Choose an operation based on the feature values. See "Distinctiveness scoring" below.
-Note 4 (resolved): feature_schema.yaml now adds a `comparable_features` list per constraintable feature, and a `global` pseudo-primitive section.
+16. (after 14) If comparable, choose feature (f) 1 from features that are comparable-constraintable. Choose primitive 2 and feature 2 from any feature sharing f1's `comparable_domain` (which may include `global.*` references — global is a pseudo-primitive whose features are signal-level statistics: min, max, mean, std, peak2peak, etc.). Choose an operation based on the feature values. See "Distinctiveness scoring" below.
+Note 4 (resolved): feature_schema.yaml tags each comparable feature with a single `comparable_domain` (one of `absolute_value`, `magnitude`, `duration`, `slope`, `sharpness`, `frequency`); the constraint engine derives peers at runtime by grouping features that share a domain. The `global` pseudo-primitive section is included.
 
 Distinctiveness scoring (steps 15 and 16):
 For each candidate constraint c on a primitive instance, compute the **information content** under the generation prior:

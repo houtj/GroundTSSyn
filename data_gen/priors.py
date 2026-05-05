@@ -59,7 +59,12 @@ class EmpiricalPriors:
                 feats = extract(prim.values, ptype)
                 # merge non-recoverable random string fields (oscillation only)
                 if ptype == PrimitiveType.OSCILLATION:
-                    for key in ("waveform_shape", "regularity"):
+                    for key in (
+                        "waveform_shape",
+                        "regularity",
+                        "envelope_behavior",
+                        "envelope_asymmetry",
+                    ):
                         if prim.random.get(key) is not None:
                             feats[key] = prim.random[key]
                 for fname, fval in feats.items():
@@ -149,12 +154,14 @@ _Z_INVARIANT_FEATURES = {
     "rise_duration",
     "fall_duration",
     "recovery",
+    "recovery_type",
     "regularity",
     "asymmetry",
     "n_cycles",
     "shape",
-    "concavity",
-    "direction",
+    "center_trend",
+    "envelope_behavior",
+    "envelope_asymmetry",
     "waveform_shape",
     "frequency",
     "period",

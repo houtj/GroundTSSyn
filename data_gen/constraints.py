@@ -231,7 +231,7 @@ def _enumerate_comparable(
     for fname, spec in schema.features(ptype).items():
         if "comparable" not in spec.constraint:
             continue
-        if not spec.comparable_features:
+        if spec.comparable_domain is None:
             continue
         x = feats.get(fname)
         if not _is_finite_number(x):
@@ -239,11 +239,7 @@ def _enumerate_comparable(
         x_val = float(x)
         ops = _comparable_ops_for(spec.type)
         salience = schema.salience(ptype, fname)
-        for entry in spec.comparable_features:
-            try:
-                target_type_str, target_feature = entry.split(".", 1)
-            except ValueError:
-                continue
+        for target_type_str, target_feature in schema.comparable_peers(ptype, fname):
             for target_pos, y_val, target_spec in _resolve_targets(
                 pos,
                 ptype,

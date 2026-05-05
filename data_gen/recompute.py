@@ -35,7 +35,7 @@ def _merge_random(
 ) -> dict[str, Any]:
     """Merge non-recoverable random fields back from the source primitive."""
     if type_ == PrimitiveType.OSCILLATION:
-        for key in ("waveform_shape", "decay", "resonance", "regularity"):
+        for key in ("waveform_shape", "envelope_behavior", "envelope_asymmetry", "regularity"):
             if random.get(key) is not None:
                 feats[key] = random[key]
     elif type_ in (PrimitiveType.INCREASE, PrimitiveType.DECREASE):

@@ -111,9 +111,9 @@ def realize_oscillation(
     duration: int,
     *,
     frequency: float,
-    decay: float,
-    resonance: float,  # noqa: ARG001  (reserved; unused in v1)
-    regularity: float,  # noqa: ARG001  (reserved; unused in v1)
+    envelope_behavior: str,
+    envelope_asymmetry: str,
+    regularity: str,  # noqa: ARG001  (reserved; unused in v1)
     waveform_shape: str,
 ) -> list[float]:
     n = duration + 1
@@ -132,8 +132,30 @@ def realize_oscillation(
     else:
         raise ValueError(f"unknown waveform_shape: {waveform_shape!r}")
 
-    envelope = np.exp(-decay * t)
-    raw = (peak2peak / 2.0) * envelope * wave
+    norm_t = t / max(n - 1, 1)
+    if envelope_behavior == "sustained":
+        env = np.ones_like(norm_t)
+    elif envelope_behavior == "decaying":
+        env = 1.0 - 0.6 * norm_t
+    elif envelope_behavior == "resonating":
+        env = 0.4 + 0.6 * norm_t
+    else:
+        raise ValueError(f"unknown envelope_behavior: {envelope_behavior!r}")
+
+    if envelope_asymmetry == "symmetric":
+        modulated = wave * env
+    elif envelope_asymmetry == "lower_anchored":
+        upper = np.maximum(wave, 0.0) * env
+        lower = np.minimum(wave, 0.0)
+        modulated = upper + lower
+    elif envelope_asymmetry == "upper_anchored":
+        upper = np.maximum(wave, 0.0)
+        lower = np.minimum(wave, 0.0) * env
+        modulated = upper + lower
+    else:
+        raise ValueError(f"unknown envelope_asymmetry: {envelope_asymmetry!r}")
+
+    raw = (peak2peak / 2.0) * modulated
     return (start_value + raw - raw[0]).tolist()
 
 

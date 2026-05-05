@@ -40,16 +40,19 @@ def _classify_shape(values: np.ndarray, eps: float = 0.1) -> str:
     return "linear"
 
 
-def _slopes(values: np.ndarray) -> tuple[float, float]:
-    return float(values[1] - values[0]), float(values[-1] - values[-2])
+_RECOVERY_FULL_THRESHOLD = 0.95
+
+
+def _classify_recovery(recovery: float) -> str:
+    return "full" if recovery >= _RECOVERY_FULL_THRESHOLD else "partial"
 
 
 def extract_spike(values: list[float]) -> dict[str, Any]:
     v = np.asarray(values, dtype=float)
     start_value = float(v[0])
     peak_idx = int(np.argmax(v))
-    peak = float(v[peak_idx])
-    peak2peak = peak - start_value
+    peak_value = float(v[peak_idx])
+    peak2peak = peak_value - start_value
     duration = len(v) - 1
     rise_duration = peak_idx
     fall_duration = duration - rise_duration
@@ -57,27 +60,26 @@ def extract_spike(values: list[float]) -> dict[str, Any]:
     recovery = (
         1.0 - (end_value - start_value) / peak2peak if peak2peak > 0 else 1.0
     )
-    width = _fwhm(v, start_value, peak)
+    recovery = float(np.clip(recovery, 0.0, 1.0))
+    width = _fwhm(v, start_value, peak_value)
     sharpness = peak2peak / width if width > 0 else float("nan")
     asymmetry = _classify_asymmetry(rise_duration, fall_duration)
     rise_slope = peak2peak / rise_duration if rise_duration > 0 else float("inf")
     fall_slope = peak2peak / fall_duration if fall_duration > 0 else float("inf")
-    start_slope, end_slope = _slopes(v)
     return {
         "start_value": start_value,
+        "peak_value": peak_value,
         "peak2peak": peak2peak,
         "duration": duration,
         "rise_duration": rise_duration,
-        "recovery": float(np.clip(recovery, 0.0, 1.0)),
+        "recovery": recovery,
+        "recovery_type": _classify_recovery(recovery),
         "fall_duration": fall_duration,
         "end_value": end_value,
-        "width": width,
         "sharpness": sharpness,
         "asymmetry": asymmetry,
         "rise_slope": rise_slope,
         "fall_slope": fall_slope,
-        "start_slope": start_slope,
-        "end_slope": end_slope,
     }
 
 
@@ -85,8 +87,8 @@ def extract_dip(values: list[float]) -> dict[str, Any]:
     v = np.asarray(values, dtype=float)
     start_value = float(v[0])
     trough_idx = int(np.argmin(v))
-    trough = float(v[trough_idx])
-    peak2peak = start_value - trough
+    trough_value = float(v[trough_idx])
+    peak2peak = start_value - trough_value
     duration = len(v) - 1
     fall_duration = trough_idx
     rise_duration = duration - fall_duration
@@ -94,27 +96,26 @@ def extract_dip(values: list[float]) -> dict[str, Any]:
     recovery = (
         1.0 - (start_value - end_value) / peak2peak if peak2peak > 0 else 1.0
     )
-    width = _fwhm(v, start_value, trough)
+    recovery = float(np.clip(recovery, 0.0, 1.0))
+    width = _fwhm(v, start_value, trough_value)
     sharpness = peak2peak / width if width > 0 else float("nan")
     asymmetry = _classify_asymmetry(fall_duration, rise_duration)
     rise_slope = peak2peak / rise_duration if rise_duration > 0 else float("inf")
     fall_slope = peak2peak / fall_duration if fall_duration > 0 else float("inf")
-    start_slope, end_slope = _slopes(v)
     return {
         "start_value": start_value,
+        "trough_value": trough_value,
         "peak2peak": peak2peak,
         "duration": duration,
         "fall_duration": fall_duration,
-        "recovery": float(np.clip(recovery, 0.0, 1.0)),
+        "recovery": recovery,
+        "recovery_type": _classify_recovery(recovery),
         "rise_duration": rise_duration,
         "end_value": end_value,
-        "width": width,
         "sharpness": sharpness,
         "asymmetry": asymmetry,
         "rise_slope": rise_slope,
         "fall_slope": fall_slope,
-        "start_slope": start_slope,
-        "end_slope": end_slope,
     }
 
 
@@ -126,7 +127,6 @@ def extract_increase(values: list[float]) -> dict[str, Any]:
     duration = len(v) - 1
     shape = _classify_shape(v)
     slope = peak2peak / duration if duration > 0 else float("inf")
-    start_slope, end_slope = _slopes(v)
     return {
         "start_value": start_value,
         "peak2peak": peak2peak,
@@ -134,9 +134,6 @@ def extract_increase(values: list[float]) -> dict[str, Any]:
         "shape": shape,
         "end_value": end_value,
         "slope": slope,
-        "concavity": shape,
-        "start_slope": start_slope,
-        "end_slope": end_slope,
     }
 
 
@@ -148,7 +145,6 @@ def extract_decrease(values: list[float]) -> dict[str, Any]:
     duration = len(v) - 1
     shape = _classify_shape(v)
     slope = peak2peak / duration if duration > 0 else float("inf")
-    start_slope, end_slope = _slopes(v)
     return {
         "start_value": start_value,
         "peak2peak": peak2peak,
@@ -156,9 +152,6 @@ def extract_decrease(values: list[float]) -> dict[str, Any]:
         "shape": shape,
         "end_value": end_value,
         "slope": slope,
-        "concavity": shape,
-        "start_slope": start_slope,
-        "end_slope": end_slope,
     }
 
 
@@ -174,34 +167,29 @@ def extract_oscillation(values: list[float]) -> dict[str, Any]:
     frequency = sign_changes / (2.0 * duration) if duration > 0 else 0.0
     period = 1.0 / frequency if frequency > 0 else float("inf")
     n_cycles = frequency * duration
-    amplitude = peak2peak / 2.0
     diff = end_value - start_value
-    direction = (
+    center_trend = (
         "upward" if diff > 0.05 * peak2peak
         else "downward" if diff < -0.05 * peak2peak
-        else "stationary"
+        else "flat"
     )
-    start_slope, end_slope = _slopes(v)
-    # decay/resonance/regularity/waveform_shape: not reliably recoverable from
-    # signal alone. Caller should merge with the Primitive's `random` dict if
-    # the original generative inputs are needed.
+    # envelope_behavior / envelope_asymmetry / regularity / waveform_shape:
+    # not reliably recoverable from signal alone. Caller should merge with the
+    # Primitive's `random` dict to populate them.
     return {
         "start_value": start_value,
         "peak2peak": peak2peak,
         "duration": duration,
         "frequency": frequency,
-        "decay": None,
-        "resonance": None,
+        "envelope_behavior": None,
+        "envelope_asymmetry": None,
         "regularity": None,
         "waveform_shape": None,
-        "amplitude": amplitude,
         "period": period,
         "n_cycles": n_cycles,
-        "direction": direction,
+        "center_trend": center_trend,
         "mean_value": mean_value,
         "end_value": end_value,
-        "start_slope": start_slope,
-        "end_slope": end_slope,
     }
 
 
@@ -210,13 +198,10 @@ def extract_plateau(values: list[float]) -> dict[str, Any]:
     start_value = float(v[0])
     end_value = float(v[-1])
     duration = len(v) - 1
-    start_slope, end_slope = _slopes(v)
     return {
         "start_value": start_value,
         "duration": duration,
         "end_value": end_value,
-        "start_slope": start_slope,
-        "end_slope": end_slope,
     }
 
 
@@ -236,8 +221,9 @@ def extract(values: list[float], type: PrimitiveType) -> dict[str, Any]:
     from `values` alone. Definitive features are recovered (start_value=values[0],
     duration=len-1, peak2peak=range), random features are recovered where the
     signal supports it (recovery, rise_duration), and derived features are
-    computed by formula. For oscillation, waveform_shape / decay / resonance /
-    regularity are returned as None — they're not reliably recoverable from
-    signal alone; merge with the source Primitive's `random` dict when needed.
+    computed by formula. For oscillation, waveform_shape / envelope_behavior /
+    envelope_asymmetry / regularity are returned as None — they're not reliably
+    recoverable from signal alone; merge with the source Primitive's `random`
+    dict when needed.
     """
     return EXTRACTORS[type](values)

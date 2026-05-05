@@ -252,6 +252,30 @@ def realize_with_features(
     )
 
 
+def _solve_drift_limited_peak2peak(
+    drift_other: float,
+    ptype: PrimitiveType,
+    cfg: Config,
+    rng: np.random.Generator,
+) -> float:
+    """Solve peak2peak for the deferred inc/dec primitive so that
+    drift_other + sign*peak2peak ∈ [-drift_threshold, +drift_threshold].
+
+    Peak2peak is NOT clipped to cfg.peak2peak_range — matching the
+    template-realization behaviour in `_realize_event_template_drift_limited`
+    (orchestrate.py:141-151). A negative peak2peak is valid: realize_increase
+    accepts it and produces a downward segment (and vice versa for decrease),
+    which is the only way to compensate large positive drift_other.
+    """
+    sign = 1.0 if ptype == PrimitiveType.INCREASE else -1.0
+    thres = cfg.drift_threshold
+    low = (-thres - drift_other) * sign
+    high = (thres - drift_other) * sign
+    if low > high:
+        low, high = high, low
+    return float(rng.uniform(low, high))
+
+
 # ---------------------------------------------------------------------------
 # Constraint classification
 # ---------------------------------------------------------------------------
@@ -471,19 +495,52 @@ def jitter_event_occurrence(
     any intra-primitive level-independent constraints. Raises
     `ConstraintRetryExhausted` if no valid candidate is found within
     `max_attempts` for any position.
+
+    When `cfg.drift_limit` is True and the template contains at least one
+    INCREASE/DECREASE, one inc/dec position is randomly chosen to defer:
+    every other position is jittered first, then the deferred primitive's
+    `peak2peak` is solved so total event drift stays within
+    `cfg.drift_threshold`. Slope and intra-primitive constraints on the
+    deferred position are skipped (mirrors the template-realization
+    behaviour in `_realize_event_template_drift_limited`).
     """
     if intra_constraints_by_pos is None:
         intra_constraints_by_pos = [[] for _ in template.primitives]
 
-    primitives: list[Primitive] = []
     template_prims = template.primitives
-    for pos, tprim in enumerate(template_prims):
+    n = len(template_prims)
+
+    deferred_pos: int | None = None
+    if cfg.drift_limit:
+        inc_dec_positions = [
+            i for i, tp in enumerate(template_prims)
+            if tp.type in (PrimitiveType.INCREASE, PrimitiveType.DECREASE)
+        ]
+        if inc_dec_positions:
+            deferred_pos = int(rng.choice(inc_dec_positions))
+
+    slots: list[Primitive | None] = [None] * n
+
+    for pos in range(n):
+        if pos == deferred_pos:
+            continue
+
+        tprim = template_prims[pos]
         new_dur = int(jittered_durations[pos])
         intra = intra_constraints_by_pos[pos]
-        prev = primitives[-1] if pos > 0 else boundary_prev
+
+        prev: Primitive | None = boundary_prev
+        for j in range(pos - 1, -1, -1):
+            if slots[j] is not None:
+                prev = slots[j]
+                break
+            if j == deferred_pos:
+                prev = template_prims[deferred_pos]
+                break
+
         next_ = (
             template_prims[pos + 1]
-            if pos + 1 < len(template_prims)
+            if pos + 1 < n
             else boundary_next
         )
 
@@ -521,8 +578,30 @@ def jitter_event_occurrence(
                 f"satisfied slope + intra-primitive constraints within "
                 f"{max_attempts} attempts"
             )
-        primitives.append(chosen)
-    return Event(primitives=primitives)
+        slots[pos] = chosen
+
+    if deferred_pos is not None:
+        tprim = template_prims[deferred_pos]
+        new_dur = int(jittered_durations[deferred_pos])
+        drift_other = sum(
+            p.values[-1] - p.values[0] for p in slots if p is not None
+        )
+        forced_p2p = _solve_drift_limited_peak2peak(
+            drift_other, tprim.type, cfg, rng
+        )
+        new_def = jitter_definitive(
+            tprim.definitive, new_dur, tprim.type, schema, cfg, rng
+        )
+        new_def["peak2peak"] = float(forced_p2p)
+        if tprim.type == PrimitiveType.PLATEAU or not tprim.random:
+            new_rand = dict(tprim.random)
+        else:
+            new_rand = jitter_random(
+                tprim.random, new_dur, tprim.type, schema, cfg, rng
+            )
+        slots[deferred_pos] = realize_with_features(tprim, new_def, new_rand)
+
+    return Event(primitives=[p for p in slots if p is not None])
 
 
 # ---------------------------------------------------------------------------

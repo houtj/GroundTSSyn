@@ -11,6 +11,9 @@ from data_gen.types import PrimitiveType
 Generative = Literal["definitive", "random", "derived"]
 ScopeSource = Literal["fixed", "config", "layout"]
 PdfName = Literal["uniform", "linear", "skewed_normal", "fixed"]
+ComparableDomain = Literal[
+    "absolute_value", "magnitude", "duration", "slope", "sharpness", "frequency"
+]
 
 
 class FeatureSpec(BaseModel):
@@ -32,7 +35,7 @@ class FeatureSpec(BaseModel):
     salience: float | None = None
 
     # Comparable-constraintable features only
-    comparable_features: list[str] | None = None
+    comparable_domain: ComparableDomain | None = None
 
 
 class Schema(RootModel[dict[str, dict[str, FeatureSpec]]]):
@@ -78,3 +81,20 @@ class Schema(RootModel[dict[str, dict[str, FeatureSpec]]]):
         if spec is None or spec.salience is None:
             return default
         return spec.salience
+
+    def comparable_peers(
+        self, primitive: PrimitiveType | str, feature: str
+    ) -> list[tuple[str, str]]:
+        """All (primitive_str, feature_name) pairs sharing this feature's
+        comparable_domain. The feature itself is included; callers must skip
+        same-position-same-feature pairs."""
+        spec = self.features(primitive).get(feature)
+        if spec is None or spec.comparable_domain is None:
+            return []
+        domain = spec.comparable_domain
+        out: list[tuple[str, str]] = []
+        for ptype_str, features in self.root.items():
+            for fname, fspec in features.items():
+                if fspec.comparable_domain == domain:
+                    out.append((ptype_str, fname))
+        return out
