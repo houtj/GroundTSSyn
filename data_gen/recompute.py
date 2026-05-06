@@ -7,6 +7,7 @@ from data_gen.features import extract
 from data_gen.global_features import compute_globals
 from data_gen.layout import Layout
 from data_gen.types import ConcatResult, Event, PrimitiveType
+from data_gen.visibility import compute_visibility
 
 
 @dataclass
@@ -49,8 +50,13 @@ def recompute_features(
     z_signal: list[float],
     layout: Layout,
     event_template: Event,
+    sigma: float = 0.0,
 ) -> NormedFeatures:
-    """Step 12: re-extract features from the z-normed signal slices."""
+    """Step 12: re-extract features from the z-normed signal slices.
+
+    `sigma` is the noise std on the z-normed scale; passed through to the
+    per-primitive visibility computation. Pass 0 when no noise is added.
+    """
     nb_events = layout.nb_events
     nb_in_event = len(event_template.primitives)
 
@@ -67,6 +73,7 @@ def recompute_features(
     last_event_index: int | None = None
 
     all_p2ps: list[float] = []
+    flat_feats: list[dict[str, Any]] = []
 
     for placed in raw.placed:
         s, e = placed.span
@@ -77,6 +84,8 @@ def recompute_features(
         p2p = feats.get("peak2peak")
         if p2p is not None:
             all_p2ps.append(float(p2p))
+
+        flat_feats.append(feats)
 
         if placed.event_index is not None:
             ev = placed.event_index
@@ -92,6 +101,14 @@ def recompute_features(
                 last_event_index = None
             inter_event[slot_idx][pos_in_slot] = feats
             pos_in_slot += 1
+
+    n = len(flat_feats)
+    for i, placed in enumerate(raw.placed):
+        left = flat_feats[i - 1] if i > 0 else None
+        right = flat_feats[i + 1] if i + 1 < n else None
+        flat_feats[i]["visibility"] = compute_visibility(
+            flat_feats[i], placed.primitive.type, left, right, sigma
+        )
 
     globals_ = compute_globals(z_signal, all_p2ps)
     return NormedFeatures(in_event=in_event, inter_event=inter_event, globals=globals_)

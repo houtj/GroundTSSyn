@@ -196,6 +196,12 @@ spike:
     description: "average rate of descent (peak2peak / fall_duration)"
     salience: 0.4
     comparable_domain: slope
+  visibility:
+    type: continuous
+    generative: derived
+    level_dependent: false
+    constraint: []
+    description: "perceptual detectability ∈ [0,1]; sigmoid((m-7)/2.5) where m = (peak2peak/σ_noise) · (1-exp(-duration/3)) · duration_self/(duration_self + 0.1·max(d_left, d_right))"
 
 # ---------------------------------------------------------------------------
 # dip — downward sharp transient (mirror of spike)
@@ -318,6 +324,12 @@ dip:
     description: "average rate of descent from baseline to trough (peak2peak / fall_duration)"
     salience: 0.4
     comparable_domain: slope
+  visibility:
+    type: continuous
+    generative: derived
+    level_dependent: false
+    constraint: []
+    description: "perceptual detectability ∈ [0,1]; sigmoid((m-7)/2.5) where m = (peak2peak/σ_noise) · (1-exp(-duration/3)) · duration_self/(duration_self + 0.1·max(d_left, d_right))"
 
 # ---------------------------------------------------------------------------
 # increase — gradual upward ramp (sharp slope renders as "step up" at
@@ -385,6 +397,12 @@ increase:
     description: "average rate of change per sample (= peak2peak / duration for linear)"
     salience: 0.9
     comparable_domain: slope
+  visibility:
+    type: continuous
+    generative: derived
+    level_dependent: false
+    constraint: []
+    description: "perceptual detectability ∈ [0,1]; sigmoid((m-7)/2.5) where m = (peak2peak/σ_noise) · (1-exp(-duration/3)) · duration_self/(duration_self + 0.1·max(d_left, d_right))"
 
 # ---------------------------------------------------------------------------
 # decrease — gradual downward ramp (mirror of increase).
@@ -451,6 +469,12 @@ decrease:
     description: "average rate of change per sample (positive magnitude)"
     salience: 0.9
     comparable_domain: slope
+  visibility:
+    type: continuous
+    generative: derived
+    level_dependent: false
+    constraint: []
+    description: "perceptual detectability ∈ [0,1]; sigmoid((m-7)/2.5) where m = (peak2peak/σ_noise) · (1-exp(-duration/3)) · duration_self/(duration_self + 0.1·max(d_left, d_right))"
 
 # ---------------------------------------------------------------------------
 # oscillation — cyclic pattern
@@ -571,6 +595,12 @@ oscillation:
     description: "value at primitive end"
     salience: 0.7
     comparable_domain: absolute_value
+  visibility:
+    type: continuous
+    generative: derived
+    level_dependent: false
+    constraint: []
+    description: "perceptual detectability ∈ [0,1]; sigmoid((m-7)/2.5) where m = (peak2peak/σ_noise) · (1-exp(-duration/3)) · duration_self/(duration_self + 0.1·max(d_left, d_right))"
 
 # ---------------------------------------------------------------------------
 # plateau — constant / quiescent segment (formerly flat_region).
@@ -610,6 +640,12 @@ plateau:
     description: "value at primitive end (= start_value for plateau)"
     salience: 0.2
     comparable_domain: absolute_value
+  visibility:
+    type: continuous
+    generative: derived
+    level_dependent: false
+    constraint: []
+    description: "perceptual detectability ∈ [0,1]; sigmoid((m-7)/2.5) where m = duration (plateau is duration-only — flat segment is visible iff long enough to register as a distinct rest, half-visible at d≈7 samples)"
 
 # ---------------------------------------------------------------------------
 # global — pseudo-primitive exposing signal-level statistics for use as

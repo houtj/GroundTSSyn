@@ -22,6 +22,7 @@ from data_gen.jitter import (
 )
 from data_gen.layout import Layout, plan_layout
 from data_gen.negation import NegativeGrounding, build_negative_groundings
+from data_gen.noise import add_white_noise, sample_noise_level
 from data_gen.normalize import z_normalize_with_stats
 from data_gen.orchestrate import (
     assemble_layout,
@@ -62,6 +63,8 @@ class FinalPipelineResult:
     z_signal: list[float]
     z_mean: float
     z_std: float
+    z_signal_noisy: list[float]
+    noise_sigma: float
     jittered_features: NormedFeatures
     basic_output: BasicOutput
     verification: list[OccurrenceVerification]
@@ -158,9 +161,16 @@ def run_steps_1_to_19(
         f"expected {cfg.signal_length}"
     )
 
+    # White-noise injection: σ in z-normed units (clean signal has unit std).
+    # Clean z_signal is preserved as ground truth and used by feature
+    # extraction + post-matching + negation; z_signal_noisy is the delivered
+    # output for downstream consumers.
+    noise_sigma = sample_noise_level(cfg, rng)
+    z_signal_noisy = add_white_noise(z_signal, noise_sigma, rng)
+
     reference_event = occurrences[0] if occurrences else base.event_template
     jittered_features = recompute_features(
-        raw_jittered, z_signal, base.layout, reference_event
+        raw_jittered, z_signal, base.layout, reference_event, sigma=noise_sigma
     )
 
     template_types = [p.type for p in base.event_template.primitives]
@@ -204,6 +214,8 @@ def run_steps_1_to_19(
         z_signal=z_signal,
         z_mean=z_mean,
         z_std=z_std,
+        z_signal_noisy=z_signal_noisy,
+        noise_sigma=noise_sigma,
         jittered_features=jittered_features,
         basic_output=basic_output,
         verification=verification,

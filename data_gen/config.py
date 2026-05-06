@@ -67,6 +67,10 @@ class Config(BaseModel):
 
     max_junction_angle_deg: float = 175.0
 
+    add_noise: bool = False
+    noise_level: list[float] = [0.0, 0.0]
+    pdf_noise_level: PdfName = "uniform"
+
     post_match: PostMatchConfig = PostMatchConfig()
     negation: NegationConfig = NegationConfig()
 
