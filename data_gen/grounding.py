@@ -1,11 +1,78 @@
 from __future__ import annotations
 
+from typing import Any, Literal
+
 from pydantic import BaseModel
 
 from data_gen.constraints import Constraint, ConstraintsResult, evaluate_constraint
 from data_gen.post_match import ExtraOccurrence
 from data_gen.recompute import NormedFeatures
 from data_gen.types import ConcatResult, PrimitiveType
+
+_SCHEMA_DOC = (
+    "Synthetic time-series sample. "
+    "`signal` is the clean z-normed signal; `signal_noisy` adds Gaussian noise of std `noise_sigma`. "
+    "The signal is composed of `events` (each an instance of `template`) separated by inter-event primitives. "
+    "`whole_time_series_layout` lists every primitive in temporal order with `kind` ('in_event' or 'inter_event'), "
+    "`visibility` in [0,1] (how perceptible the primitive is given its amplitude/duration relative to noise), "
+    "`cp_visibility` in [0,1] (how perceptible the change-point at its boundary is), and `features` (realized properties). "
+    "`events` groups in-event primitives by occurrence for event-level reasoning. "
+    "`template` describes the abstract event pattern that each occurrence instantiates. "
+    "`grounding` lists template-level constraints satisfied by ALL event occurrences. "
+    "`globals` holds signal-level statistics."
+)
+
+
+class TemplatePrimitiveOut(BaseModel):
+    template_index: int
+    type: PrimitiveType
+    duration: int
+
+
+class TemplateOut(BaseModel):
+    nb_primitives: int
+    primitives: list[TemplatePrimitiveOut]
+
+
+class PrimitiveOccurrenceOut(BaseModel):
+    template_index: int
+    type: PrimitiveType
+    span: tuple[int, int]
+    visibility: float | None
+    cp_visibility: float | None
+    features: dict[str, Any]
+
+
+class EventOccurrenceOut(BaseModel):
+    event_index: int
+    span: tuple[int, int]
+    source: Literal["template", "post_match"]
+    primitives: list[PrimitiveOccurrenceOut]
+
+
+class InEventLayoutEntry(BaseModel):
+    kind: Literal["in_event"]
+    event_index: int
+    template_index: int
+    type: PrimitiveType
+    span: tuple[int, int]
+    visibility: float | None
+    cp_visibility: float | None
+    features: dict[str, Any]
+
+
+class InterEventLayoutEntry(BaseModel):
+    kind: Literal["inter_event"]
+    slot_index: int
+    position_in_slot: int
+    type: PrimitiveType
+    span: tuple[int, int]
+    visibility: float | None
+    cp_visibility: float | None
+    features: dict[str, Any]
+
+
+LayoutEntry = InEventLayoutEntry | InterEventLayoutEntry
 
 
 class GroundedPrimitiveOut(BaseModel):
@@ -18,8 +85,16 @@ class GroundedPrimitiveOut(BaseModel):
 class BasicOutput(BaseModel):
     """The pipeline's externally-visible output (per pipline.md)."""
 
+    schema_version: str = "2"
+    schema_doc: str = _SCHEMA_DOC
     signal: list[float]
     signal_noisy: list[float]
+    signal_length: int = 0
+    noise_sigma: float = 0.0
+    globals: dict[str, Any] = {}
+    template: TemplateOut | None = None
+    events: list[EventOccurrenceOut] = []
+    whole_time_series_layout: list[LayoutEntry] = []
     grounding: list[GroundedPrimitiveOut]
     event_spans: list[tuple[int, int]]
 

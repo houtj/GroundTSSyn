@@ -33,6 +33,7 @@ from data_gen.post_match import ExtraOccurrence, find_extra_occurrences
 from data_gen.priors import EmpiricalPriors
 from data_gen.recompute import NormedFeatures, recompute_features
 from data_gen.schema import Schema
+from data_gen.serialization import enrich_basic_output
 from data_gen.types import ConcatResult, Event, Primitive
 
 
@@ -216,6 +217,17 @@ def run_steps_1_to_19(
             max_attempts=cfg.negation.max_attempts,
             target_n=cfg.negation.target_n,
         )
+
+    basic_output = enrich_basic_output(
+        basic_output,
+        raw_jittered=raw_jittered,
+        event_template=base.event_template,
+        layout=base.layout,
+        jittered_features=jittered_features,
+        noise_sigma=noise_sigma,
+        post_match_extras=extras,
+        z_signal=z_signal,
+    )
 
     return FinalPipelineResult(
         extended=extended,

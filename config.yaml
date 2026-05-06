@@ -1,9 +1,9 @@
 signal_length: 512
 
-nb_event_occurrence: [1, 3]
+nb_event_occurrence: [2, 7]
 pdf_nb_event_occurrence: "uniform"
 
-nb_primitives_in_event: [1, 7]
+nb_primitives_in_event: [2, 7]
 pdf_nb_primitives_in_event: "uniform"
 
 nb_inter_event_primitives: [0, 5]
@@ -19,9 +19,9 @@ primitive_type_samping_weight:
   plateau: 3
   oscillation: 1
 
-min_primitive_length: 5
-min_spike_length: 2
-max_spike_length: 7
+min_primitive_length: 8
+min_spike_length: 4
+max_spike_length: 8
 
 pdf_event_length: "skewed_normal"
 event_average_length_weight: 5
@@ -67,7 +67,7 @@ max_junction_angle_deg: 175.0
 #   σ ≈ 0.5+       → SNR ~1–2×     (most primitives invisible)
 # The clean signal is preserved alongside the noisy one and is used for
 # post-matching and negation; only the noisy signal is the "delivered" output.
-add_noise: false
+add_noise: true
 noise_level: [0.05, 0.3]
 pdf_noise_level: "uniform"
 
@@ -78,7 +78,7 @@ pdf_noise_level: "uniform"
 # tile is then offset randomly along the signal so that edge events may be
 # partial — if either the first or last template primitive of an edge event
 # is fully truncated, that occurrence is dropped from the grounding.
-periodical: true
+periodical: false
 
 # Post-pass: after generation, scan inter-event runs for primitive-type
 # subsequences matching the event template; if all sampled constraints are
