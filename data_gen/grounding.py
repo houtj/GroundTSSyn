@@ -19,6 +19,7 @@ class BasicOutput(BaseModel):
     """The pipeline's externally-visible output (per pipline.md)."""
 
     signal: list[float]
+    signal_noisy: list[float]
     grounding: list[GroundedPrimitiveOut]
     event_spans: list[tuple[int, int]]
 
@@ -39,6 +40,7 @@ class VerificationSummary(BaseModel):
 
 def build_basic_output(
     z_signal: list[float],
+    z_signal_noisy: list[float],
     raw: ConcatResult,
     template_types: list[PrimitiveType],
     constraints_result: ConstraintsResult,
@@ -80,6 +82,7 @@ def build_basic_output(
 
     return BasicOutput(
         signal=list(z_signal),
+        signal_noisy=list(z_signal_noisy),
         grounding=grounding,
         event_spans=[tuple(s) for s in raw.event_spans],
     )
@@ -135,6 +138,7 @@ def apply_extra_occurrences(
     return (
         BasicOutput(
             signal=list(basic.signal),
+            signal_noisy=list(basic.signal_noisy),
             grounding=new_grounding,
             event_spans=sorted_event_spans,
         ),
@@ -207,6 +211,7 @@ def filter_failed_constraints(
     return (
         BasicOutput(
             signal=list(basic.signal),
+            signal_noisy=list(basic.signal_noisy),
             grounding=new_grounding,
             event_spans=list(basic.event_spans),
         ),

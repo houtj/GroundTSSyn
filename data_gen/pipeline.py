@@ -175,7 +175,7 @@ def run_steps_1_to_19(
 
     template_types = [p.type for p in base.event_template.primitives]
     basic_output = build_basic_output(
-        z_signal, raw_jittered, template_types, extended.constraints
+        z_signal, z_signal_noisy, raw_jittered, template_types, extended.constraints
     )
     verification = verify_constraints(extended.constraints, jittered_features)
     basic_output, verification = filter_failed_constraints(basic_output, verification)
