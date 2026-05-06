@@ -33,6 +33,7 @@ class PlacedPrimitive(BaseModel):
     primitive: Primitive
     span: tuple[int, int]
     event_index: int | None = None
+    template_position: int | None = None
 
 
 class ConcatResult(BaseModel):

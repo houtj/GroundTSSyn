@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from data_gen.concat import concatenate
+from data_gen.concat import concatenate, truncate_concat_result
 from data_gen.config import Config
 from data_gen.constraints import ConstraintsResult, sample_constraints
 from data_gen.grounding import (
@@ -88,6 +88,8 @@ def run_steps_1_to_11(
     inter = realize_inter_event_primitives(cfg, layout, template, schema, rng)
     items = assemble_layout(layout, template, inter)
     raw = concatenate(items)
+    if layout.periodical:
+        raw = truncate_concat_result(raw, layout.tile_offset, cfg.signal_length)
     signal, mean, std = z_normalize_with_stats(raw.signal)
 
     assert len(raw.signal) == cfg.signal_length, (
@@ -154,6 +156,10 @@ def run_steps_1_to_19(
 
     items = assemble_with_occurrences(base.layout, occurrences, base.inter_event)
     raw_jittered = concatenate(items)
+    if base.layout.periodical:
+        raw_jittered = truncate_concat_result(
+            raw_jittered, base.layout.tile_offset, cfg.signal_length
+        )
     z_signal, z_mean, z_std = z_normalize_with_stats(raw_jittered.signal)
 
     assert len(z_signal) == cfg.signal_length, (

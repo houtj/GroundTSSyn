@@ -173,6 +173,11 @@ def extract_oscillation(values: list[float]) -> dict[str, Any]:
         else "downward" if diff < -0.05 * peak2peak
         else "flat"
     )
+    if len(v) >= 2:
+        xs = np.arange(len(v), dtype=float)
+        center_slope, center_intercept = np.polyfit(xs, v, 1).tolist()
+    else:
+        center_slope, center_intercept = 0.0, start_value
     # envelope_behavior / envelope_asymmetry / regularity / waveform_shape:
     # not reliably recoverable from signal alone. Caller should merge with the
     # Primitive's `random` dict to populate them.
@@ -188,6 +193,8 @@ def extract_oscillation(values: list[float]) -> dict[str, Any]:
         "period": period,
         "n_cycles": n_cycles,
         "center_trend": center_trend,
+        "center_slope": float(center_slope),
+        "center_intercept": float(center_intercept),
         "mean_value": mean_value,
         "end_value": end_value,
     }

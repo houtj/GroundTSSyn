@@ -23,6 +23,12 @@ GAMMA = 0.1
 TAU_SPIKE = 3.0
 K_SPIKE = 1.0 / math.sqrt(3)  # ≈ 0.577
 
+# Change-point visibility: same SNR-anchor sigmoid as the generic primitive
+# visibility — invisible boundary when slope+level match exactly, half-visible
+# when combined SNR ≈ 7, saturated above ~15.
+TAU_CP = 7.0
+K_CP = 2.5
+
 
 def _sigmoid(x: float) -> float:
     if x >= 0:
@@ -73,3 +79,74 @@ def compute_visibility(
         m = amp_term * df * mask
 
     return _sigmoid((m - TAU) / K)
+
+
+def _boundary_slopes(
+    feats: dict[str, Any], type_: PrimitiveType
+) -> tuple[float, float]:
+    """Returns (left_edge_slope, right_edge_slope), signed, in samples⁻¹."""
+    if type_ == PrimitiveType.PLATEAU:
+        return 0.0, 0.0
+    if type_ == PrimitiveType.INCREASE:
+        s = float(feats.get("slope", 0.0))
+        return s, s
+    if type_ == PrimitiveType.DECREASE:
+        s = -float(feats.get("slope", 0.0))
+        return s, s
+    if type_ == PrimitiveType.SPIKE:
+        return float(feats.get("rise_slope", 0.0)), -float(feats.get("fall_slope", 0.0))
+    if type_ == PrimitiveType.DIP:
+        return -float(feats.get("fall_slope", 0.0)), float(feats.get("rise_slope", 0.0))
+    if type_ == PrimitiveType.OSCILLATION:
+        s = float(feats.get("center_slope", 0.0))
+        return s, s
+    return 0.0, 0.0
+
+
+def _boundary_trend_values(
+    feats: dict[str, Any], type_: PrimitiveType
+) -> tuple[float, float]:
+    """Returns (left_edge_trend_value, right_edge_trend_value).
+
+    For non-oscillation types the trend line passes through start/end exactly,
+    matching the actual signal samples (so neighbors agree → Δlevel = 0). For
+    oscillation, the least-squares center line generally diverges from the
+    instantaneous endpoint samples, so Δlevel can be non-zero.
+    """
+    if type_ == PrimitiveType.OSCILLATION:
+        c0 = float(feats.get("center_intercept", feats.get("start_value", 0.0)))
+        s = float(feats.get("center_slope", 0.0))
+        d = float(feats.get("duration", 0))
+        return c0, c0 + s * d
+    return float(feats.get("start_value", 0.0)), float(feats.get("end_value", 0.0))
+
+
+def compute_cp_visibility(
+    left_feats: dict[str, Any],
+    left_type: PrimitiveType,
+    right_feats: dict[str, Any],
+    right_type: PrimitiveType,
+    sigma: float,
+) -> float:
+    """Visibility of the boundary between two adjacent primitives ∈ [0,1].
+
+    Combines slope mismatch (SNR over the shorter neighbor's window) with
+    trend-level mismatch (direct amplitude SNR), then sigmoid-normalizes.
+    """
+    _, s_out = _boundary_slopes(left_feats, left_type)
+    s_in, _ = _boundary_slopes(right_feats, right_type)
+    _, c_out = _boundary_trend_values(left_feats, left_type)
+    c_in, _ = _boundary_trend_values(right_feats, right_type)
+
+    delta_s = s_in - s_out
+    delta_c = c_in - c_out
+
+    if sigma <= 0.0:
+        return 1.0 if (abs(delta_s) > 0 or abs(delta_c) > 0) else 0.0
+
+    L = max(min(float(left_feats.get("duration", 1)),
+                float(right_feats.get("duration", 1))), 1.0)
+    delta_s_norm = abs(delta_s) * math.sqrt(L) / sigma
+    delta_c_norm = abs(delta_c) / sigma
+    m = math.sqrt(delta_s_norm**2 + delta_c_norm**2)
+    return _sigmoid((m - TAU_CP) / K_CP)

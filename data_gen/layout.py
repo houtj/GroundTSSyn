@@ -18,6 +18,22 @@ class LayoutInfeasible(RuntimeError):
     """Raised when the budget arithmetic cannot satisfy per-primitive minima."""
 
 
+# Adjacent type pairs forbidden during sequence sampling. Re-rolled at the
+# sample loop. plateau↔plateau merges into a longer flat; spike↔oscillation
+# is too tangled to model in change-point visibility cleanly.
+DISALLOWED_ADJACENCY: set[tuple[PrimitiveType, PrimitiveType]] = {
+    (PrimitiveType.PLATEAU,     PrimitiveType.PLATEAU),
+    (PrimitiveType.SPIKE,       PrimitiveType.OSCILLATION),
+    (PrimitiveType.OSCILLATION, PrimitiveType.SPIKE),
+}
+
+
+def _disallowed(left: PrimitiveType | None, right: PrimitiveType | None) -> bool:
+    if left is None or right is None:
+        return False
+    return (left, right) in DISALLOWED_ADJACENCY
+
+
 class Layout(BaseModel):
     nb_events: int
     event_template_types: list[PrimitiveType]
@@ -27,6 +43,11 @@ class Layout(BaseModel):
     inter_event_types: list[list[PrimitiveType]]
     inter_event_durations: list[list[int]]
     signal_length: int
+    # Periodical mode: number of leading samples trimmed from the full M-event
+    # tile to fit `signal_length`. Always 0 in aperiodic mode. The trimmed
+    # samples on the right side equal full_tile_len - signal_length - tile_offset.
+    tile_offset: int = 0
+    periodical: bool = False
 
 
 def _per_type_bounds(
@@ -46,7 +67,7 @@ def sample_primitive_types(
     prev_type: PrimitiveType | None = None,
     next_type: PrimitiveType | None = None,
 ) -> list[PrimitiveType]:
-    """Weighted-categorical sampling with adjacent-plateau suppression via resampling.
+    """Weighted-categorical sampling with disallowed-adjacency suppression via resampling.
 
     prev_type: type immediately before this sequence (e.g. last event-template
                primitive for non-leading inter-event slots).
@@ -60,9 +81,9 @@ def sample_primitive_types(
         eff_prev = prev_type if i == 0 else out[-1]
         while True:
             t = sample_weighted_categorical(types, weights, rng)
-            if eff_prev == PrimitiveType.PLATEAU and t == PrimitiveType.PLATEAU:
+            if _disallowed(eff_prev, t):
                 continue
-            if is_last and next_type == PrimitiveType.PLATEAU and t == PrimitiveType.PLATEAU:
+            if is_last and _disallowed(t, next_type):
                 continue
             break
         out.append(t)
@@ -220,14 +241,103 @@ def _plan_once(cfg: Config, rng: np.random.Generator) -> Layout:
     )
 
 
+def _periodical_event_length_bounds(
+    n_target: int, signal_length: int, min_event_length: int
+) -> tuple[int, int]:
+    """L range for periodical mode.
+
+    n_target is the sampled "intended full event count". Per the spec:
+        L ∈ [signal_length / (n+2), signal_length / (n-1)]
+    For n_target == 1 the upper bound diverges; fall back to [S/3, S-1].
+    The lower bound is also clamped to `min_event_length` so the per-primitive
+    minima can always be satisfied.
+    """
+    S = signal_length
+    if n_target <= 1:
+        low = S // 3
+        high = S - 1
+    else:
+        low = S // (n_target + 2)
+        high = S // (n_target - 1)
+    low = max(low, min_event_length, 1)
+    high = max(high, low)
+    return int(low), int(high)
+
+
+def _plan_once_periodical(cfg: Config, rng: np.random.Generator) -> Layout:
+    # Step 1: target full-event count
+    n_target = sample_uniform_integer(
+        cfg.nb_event_occurrence[0], cfg.nb_event_occurrence[1], rng
+    )
+
+    # Step 3: number of in-event primitives
+    nb_in_event = sample_uniform_integer(
+        cfg.nb_primitives_in_event[0], cfg.nb_primitives_in_event[1], rng
+    )
+
+    # Step 4: in-event primitive types
+    event_template_types = sample_primitive_types(cfg, nb_in_event, rng)
+
+    # Step 6: event length, sampled uniformly in the periodical bound formula.
+    min_event_length = nb_in_event * cfg.min_primitive_length
+    L_low, L_high = _periodical_event_length_bounds(
+        n_target, cfg.signal_length, min_event_length
+    )
+    if L_high < min_event_length:
+        raise LayoutInfeasible(
+            f"periodical L_high={L_high} < min_event_length={min_event_length} "
+            f"(signal_length={cfg.signal_length}, n_target={n_target}, "
+            f"nb_in_event={nb_in_event})"
+        )
+    event_length = sample_uniform_integer(L_low, L_high, rng)
+
+    # Step 7: in-event primitive durations
+    event_template_durations = _sample_sequential_durations(
+        event_template_types, event_length, cfg, rng
+    )
+
+    # Determine actual number of tiled events M so the full tile covers the
+    # signal. With M events of duration L tiled back-to-back, the full tile
+    # has M*L+1 samples; we need M*L >= signal_length - 1.
+    full_min = cfg.signal_length - 1
+    M = (full_min + event_length - 1) // event_length  # ceil
+    if M < 1:
+        M = 1
+    full_tile_len = M * event_length + 1
+    overshoot = full_tile_len - cfg.signal_length
+
+    # Random integer offset; allows one edge to be a full event and the other
+    # truncated, or both truncated.
+    tile_offset = int(rng.integers(0, overshoot + 1)) if overshoot > 0 else 0
+
+    # Step 2/5/8: no inter-event primitives in periodical mode.
+    inter_event_counts = [0] * (M + 1)
+    inter_event_types: list[list[PrimitiveType]] = [[] for _ in range(M + 1)]
+    inter_event_durations: list[list[int]] = [[] for _ in range(M + 1)]
+
+    return Layout(
+        nb_events=M,
+        event_template_types=event_template_types,
+        event_template_durations=event_template_durations,
+        event_length=event_length,
+        inter_event_counts=inter_event_counts,
+        inter_event_types=inter_event_types,
+        inter_event_durations=inter_event_durations,
+        signal_length=cfg.signal_length,
+        tile_offset=tile_offset,
+        periodical=True,
+    )
+
+
 def plan_layout(
     cfg: Config, rng: np.random.Generator, *, max_attempts: int = 10
 ) -> Layout:
     """Steps 1-8. Retries on `LayoutInfeasible` up to `max_attempts` times."""
+    plan_fn = _plan_once_periodical if cfg.periodical else _plan_once
     last_err: Exception | None = None
     for _ in range(max_attempts):
         try:
-            return _plan_once(cfg, rng)
+            return plan_fn(cfg, rng)
         except LayoutInfeasible as e:
             last_err = e
             continue

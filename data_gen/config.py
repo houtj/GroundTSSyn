@@ -71,6 +71,8 @@ class Config(BaseModel):
     noise_level: list[float] = [0.0, 0.0]
     pdf_noise_level: PdfName = "uniform"
 
+    periodical: bool = False
+
     post_match: PostMatchConfig = PostMatchConfig()
     negation: NegationConfig = NegationConfig()
 

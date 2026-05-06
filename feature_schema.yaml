@@ -202,6 +202,12 @@ spike:
     level_dependent: false
     constraint: []
     description: "perceptual detectability ∈ [0,1]; sigmoid((m-3)·√3) where m = peak2peak/σ_noise — no duration or neighbor-mask factor (spikes stand out by amplitude alone; invisible below ~1.3σ, half-visible at ~3σ, highly visible above ~5σ)"
+  cp_visibility:
+    type: continuous
+    generative: derived
+    level_dependent: false
+    constraint: []
+    description: "change-point visibility ∈ [0,1] = min(left_cp, right_cp); each cp = sigmoid((m-7)/2.5) where m = √((Δslope·√L/σ)² + (Δlevel/σ)²); spike contributes signed +rise_slope on its left edge and -fall_slope on its right edge. Low cp_visibility means the primitive merges visually into a neighbor."
 
 # ---------------------------------------------------------------------------
 # dip — downward sharp transient (mirror of spike)
@@ -330,6 +336,12 @@ dip:
     level_dependent: false
     constraint: []
     description: "perceptual detectability ∈ [0,1]; sigmoid((m-3)·√3) where m = peak2peak/σ_noise — no duration or neighbor-mask factor (dips stand out by amplitude alone; invisible below ~1.3σ, half-visible at ~3σ, highly visible above ~5σ)"
+  cp_visibility:
+    type: continuous
+    generative: derived
+    level_dependent: false
+    constraint: []
+    description: "change-point visibility ∈ [0,1] = min(left_cp, right_cp); each cp = sigmoid((m-7)/2.5) where m = √((Δslope·√L/σ)² + (Δlevel/σ)²); dip contributes signed -fall_slope on its left edge and +rise_slope on its right edge. Low cp_visibility means the primitive merges visually into a neighbor."
 
 # ---------------------------------------------------------------------------
 # increase — gradual upward ramp (sharp slope renders as "step up" at
@@ -403,6 +415,12 @@ increase:
     level_dependent: false
     constraint: []
     description: "perceptual detectability ∈ [0,1]; sigmoid((m-7)/2.5) where m = (peak2peak/σ_noise) · (1-exp(-duration/3)) · duration_self/(duration_self + 0.1·max(d_left, d_right))"
+  cp_visibility:
+    type: continuous
+    generative: derived
+    level_dependent: false
+    constraint: []
+    description: "change-point visibility ∈ [0,1] = min(left_cp, right_cp); each cp = sigmoid((m-7)/2.5) where m = √((Δslope·√L/σ)² + (Δlevel/σ)²); increase contributes +slope on both edges. Low cp_visibility means the primitive merges visually into a neighbor (e.g., similar-slope ramps in succession)."
 
 # ---------------------------------------------------------------------------
 # decrease — gradual downward ramp (mirror of increase).
@@ -475,6 +493,12 @@ decrease:
     level_dependent: false
     constraint: []
     description: "perceptual detectability ∈ [0,1]; sigmoid((m-7)/2.5) where m = (peak2peak/σ_noise) · (1-exp(-duration/3)) · duration_self/(duration_self + 0.1·max(d_left, d_right))"
+  cp_visibility:
+    type: continuous
+    generative: derived
+    level_dependent: false
+    constraint: []
+    description: "change-point visibility ∈ [0,1] = min(left_cp, right_cp); each cp = sigmoid((m-7)/2.5) where m = √((Δslope·√L/σ)² + (Δlevel/σ)²); decrease contributes -slope on both edges. Low cp_visibility means the primitive merges visually into a neighbor (e.g., similar-slope ramps in succession)."
 
 # ---------------------------------------------------------------------------
 # oscillation — cyclic pattern
@@ -595,12 +619,30 @@ oscillation:
     description: "value at primitive end"
     salience: 0.7
     comparable_domain: absolute_value
+  center_slope:
+    type: continuous
+    generative: derived
+    level_dependent: false
+    constraint: []
+    description: "least-squares slope of the oscillation's center line (signal vs index); used by cp_visibility to compare the oscillation's underlying trend with neighbors"
+  center_intercept:
+    type: continuous
+    generative: derived
+    level_dependent: true
+    constraint: []
+    description: "least-squares intercept of the oscillation's center line; trend value at the left edge (may differ from start_value, which is the exact instantaneous sample)"
   visibility:
     type: continuous
     generative: derived
     level_dependent: false
     constraint: []
     description: "perceptual detectability ∈ [0,1]; sigmoid((m-7)/2.5) where m = (peak2peak/σ_noise) · (1-exp(-duration/3)) · duration_self/(duration_self + 0.1·max(d_left, d_right))"
+  cp_visibility:
+    type: continuous
+    generative: derived
+    level_dependent: false
+    constraint: []
+    description: "change-point visibility ∈ [0,1] = min(left_cp, right_cp); each cp = sigmoid((m-7)/2.5) where m = √((Δslope·√L/σ)² + (Δlevel/σ)²); oscillation contributes center_slope on both edges, and Δlevel uses the fitted center line (not the instantaneous endpoint samples). Low cp_visibility means the oscillation's underlying trend continues smoothly into a neighbor."
 
 # ---------------------------------------------------------------------------
 # plateau — constant / quiescent segment (formerly flat_region).
@@ -646,6 +688,12 @@ plateau:
     level_dependent: false
     constraint: []
     description: "perceptual detectability ∈ [0,1]; sigmoid((m-7)/2.5) where m = duration (plateau is duration-only — flat segment is visible iff long enough to register as a distinct rest, half-visible at d≈7 samples)"
+  cp_visibility:
+    type: continuous
+    generative: derived
+    level_dependent: false
+    constraint: []
+    description: "change-point visibility ∈ [0,1] = min(left_cp, right_cp); each cp = sigmoid((m-7)/2.5) where m = √((Δslope·√L/σ)² + (Δlevel/σ)²); plateau contributes 0 slope on both edges. Low cp_visibility means a neighboring primitive ends with near-zero trend slope and the boundary is hard to localize."
 
 # ---------------------------------------------------------------------------
 # global — pseudo-primitive exposing signal-level statistics for use as

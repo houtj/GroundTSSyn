@@ -71,6 +71,15 @@ add_noise: true
 noise_level: [0.05, 0.3]
 pdf_noise_level: "uniform"
 
+# Periodical mode: events tile back-to-back across the signal with no
+# inter-event primitives. The number of full events is the sampled
+# nb_event_occurrence (n); event length L is sampled uniformly in
+# [signal_length/(n+2), signal_length/(n-1)] (special case for n=1). The
+# tile is then offset randomly along the signal so that edge events may be
+# partial — if either the first or last template primitive of an edge event
+# is fully truncated, that occurrence is dropped from the grounding.
+periodical: true
+
 # Post-pass: after generation, scan inter-event runs for primitive-type
 # subsequences matching the event template; if all sampled constraints are
 # satisfied, append the run as an extra event occurrence.

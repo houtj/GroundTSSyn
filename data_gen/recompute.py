@@ -7,7 +7,7 @@ from data_gen.features import extract
 from data_gen.global_features import compute_globals
 from data_gen.layout import Layout
 from data_gen.types import ConcatResult, Event, PrimitiveType
-from data_gen.visibility import compute_visibility
+from data_gen.visibility import compute_cp_visibility, compute_visibility
 
 
 @dataclass
@@ -56,20 +56,26 @@ def recompute_features(
 
     `sigma` is the noise std on the z-normed scale; passed through to the
     per-primitive visibility computation. Pass 0 when no noise is added.
+
+    In periodical mode, the first/last edge events may be partial after
+    truncation. Per the grounding rule, an event with its first or last
+    template primitive missing is dropped from `in_event` so that downstream
+    consumers (verify_constraints, etc.) see only events that match the
+    grounding's `event_spans`.
     """
-    nb_events = layout.nb_events
     nb_in_event = len(event_template.primitives)
 
-    in_event: list[list[dict[str, Any]]] = [
-        [dict() for _ in range(nb_in_event)] for _ in range(nb_events)
-    ]
+    # Group placed in-event primitives by event_index, indexed by template
+    # position, so we can detect events whose first/last template position is
+    # missing (periodical edge truncation).
+    by_event: dict[int, dict[int, dict[str, Any]]] = {}
+
     inter_event: list[list[dict[str, Any]]] = [
         [dict() for _ in range(k)] for k in layout.inter_event_counts
     ]
 
     slot_idx = 0
     pos_in_slot = 0
-    pos_in_event = 0
     last_event_index: int | None = None
 
     all_p2ps: list[float] = []
@@ -89,18 +95,29 @@ def recompute_features(
 
         if placed.event_index is not None:
             ev = placed.event_index
-            if ev != last_event_index:
-                pos_in_event = 0
-                last_event_index = ev
-            in_event[ev][pos_in_event] = feats
-            pos_in_event += 1
+            last_event_index = ev
+            tpos = placed.template_position
+            if tpos is not None and 0 <= tpos < nb_in_event:
+                by_event.setdefault(ev, {})[tpos] = feats
         else:
             if last_event_index is not None:
                 slot_idx = last_event_index + 1
                 pos_in_slot = 0
                 last_event_index = None
-            inter_event[slot_idx][pos_in_slot] = feats
+            if slot_idx < len(inter_event) and pos_in_slot < len(inter_event[slot_idx]):
+                inter_event[slot_idx][pos_in_slot] = feats
             pos_in_slot += 1
+
+    # Keep only events with both first and last template positions present.
+    # Aperiodic events always have both; periodical edge events may not.
+    in_event: list[list[dict[str, Any]]] = []
+    for ev_idx in sorted(by_event):
+        positions = by_event[ev_idx]
+        if 0 not in positions or (nb_in_event - 1) not in positions:
+            continue
+        in_event.append(
+            [positions.get(pos, dict()) for pos in range(nb_in_event)]
+        )
 
     n = len(flat_feats)
     for i, placed in enumerate(raw.placed):
@@ -109,6 +126,28 @@ def recompute_features(
         flat_feats[i]["visibility"] = compute_visibility(
             flat_feats[i], placed.primitive.type, left, right, sigma
         )
+
+    # Pass 3: per-change-point visibility, then per-primitive aggregate.
+    # Signal-edge CPs are skipped — edge primitives use their inner CP only.
+    cp_vis: list[float | None] = [None] * (n + 1)  # cp_vis[i] = CP between i-1 and i
+    for i in range(1, n):
+        cp_vis[i] = compute_cp_visibility(
+            flat_feats[i - 1], raw.placed[i - 1].primitive.type,
+            flat_feats[i],     raw.placed[i].primitive.type,
+            sigma,
+        )
+
+    for i in range(n):
+        left_cp = cp_vis[i] if i > 0 else None
+        right_cp = cp_vis[i + 1] if i + 1 < n else None
+        if left_cp is None and right_cp is None:
+            flat_feats[i]["cp_visibility"] = 1.0
+        elif left_cp is None:
+            flat_feats[i]["cp_visibility"] = right_cp
+        elif right_cp is None:
+            flat_feats[i]["cp_visibility"] = left_cp
+        else:
+            flat_feats[i]["cp_visibility"] = min(left_cp, right_cp)
 
     globals_ = compute_globals(z_signal, all_p2ps)
     return NormedFeatures(in_event=in_event, inter_event=inter_event, globals=globals_)

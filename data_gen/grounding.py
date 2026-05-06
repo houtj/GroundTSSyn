@@ -49,22 +49,39 @@ def build_basic_output(
     Step 19: assemble the per-template-position spans (one span per
     occurrence) and bundle with the constraints from step 16. Inter-event
     primitives are excluded from grounding (per spec).
+
+    Periodical mode: the first/last event may be partial after truncation. Per
+    spec, an event is dropped from the annotation if its first or last template
+    primitive is missing entirely. The associated event_span is also dropped.
     """
     nb_in_event = len(template_types)
-    spans_by_pos: list[list[tuple[int, int]]] = [[] for _ in range(nb_in_event)]
 
-    pos_in_event = 0
-    last_event_index: int | None = None
+    # Group in-event placed primitives by event_index, indexed by template_position.
+    by_event: dict[int, dict[int, tuple[int, int]]] = {}
     for placed in raw.placed:
         if placed.event_index is None:
             continue
-        ev = placed.event_index
-        if ev != last_event_index:
-            pos_in_event = 0
-            last_event_index = ev
-        if pos_in_event < nb_in_event:
-            spans_by_pos[pos_in_event].append(tuple(placed.span))
-        pos_in_event += 1
+        tpos = placed.template_position
+        if tpos is None or tpos >= nb_in_event:
+            continue
+        by_event.setdefault(placed.event_index, {})[tpos] = tuple(placed.span)
+
+    spans_by_pos: list[list[tuple[int, int]]] = [[] for _ in range(nb_in_event)]
+    kept_events: list[int] = []
+    for ev_idx in sorted(by_event):
+        positions = by_event[ev_idx]
+        # Drop if the FIRST template primitive is missing (e.g., first event
+        # truncated past position 0) or the LAST is missing (last event).
+        if 0 not in positions or (nb_in_event - 1) not in positions:
+            continue
+        kept_events.append(ev_idx)
+        for pos, span in positions.items():
+            spans_by_pos[pos].append(span)
+
+    kept_event_spans = [
+        tuple(raw.event_spans[ev_idx]) for ev_idx in kept_events
+        if ev_idx < len(raw.event_spans)
+    ]
 
     grounded_by_pos = {g.template_index: g for g in constraints_result.grounded}
     grounding: list[GroundedPrimitiveOut] = []
@@ -84,7 +101,7 @@ def build_basic_output(
         signal=list(z_signal),
         signal_noisy=list(z_signal_noisy),
         grounding=grounding,
-        event_spans=[tuple(s) for s in raw.event_spans],
+        event_spans=kept_event_spans,
     )
 
 
