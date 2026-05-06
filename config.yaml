@@ -47,7 +47,7 @@ pdf_inter_event_primitive_peak_2_peak: "uniform"
 nb_constraints: [0, 3]
 pdf_nb_constraints: [0.7, 0.1, 0.1, 0.1]
 
-jitter_randomness: 0.2
+jitter_randomness: 0
 
 numerical_constraint_weight: 0
 comparable_constraint_weight: 4
@@ -67,7 +67,7 @@ max_junction_angle_deg: 175.0
 #   σ ≈ 0.5+       → SNR ~1–2×     (most primitives invisible)
 # The clean signal is preserved alongside the noisy one and is used for
 # post-matching and negation; only the noisy signal is the "delivered" output.
-add_noise: true
+add_noise: false
 noise_level: [0.05, 0.3]
 pdf_noise_level: "uniform"
 

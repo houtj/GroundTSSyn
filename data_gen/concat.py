@@ -102,7 +102,7 @@ def concatenate(layout: list[Primitive | Event]) -> ConcatResult:
 
 
 def truncate_concat_result(
-    raw: ConcatResult, left_trim: int, signal_length: int
+    raw: ConcatResult, left_trim: int, signal_length: int, nb_in_event: int
 ) -> ConcatResult:
     """
     Crop a ConcatResult to the window [left_trim, left_trim + signal_length - 1]
@@ -113,6 +113,12 @@ def truncate_concat_result(
     Per-primitive values and spans are clipped to the visible window; primitives
     that fall entirely outside it are dropped. Event spans are clipped likewise;
     events with no remaining visible primitives are dropped from event_spans.
+
+    Per the periodical-mode rule: an event whose first or last template
+    primitive has been truncated entirely is no longer considered an event —
+    its surviving primitives are re-tagged as inter-event (event_index=None,
+    template_position=None) so downstream consumers (grounding, plotting,
+    post_match) treat them accordingly.
     """
     if left_trim < 0 or signal_length <= 0:
         raise ValueError(
@@ -129,8 +135,33 @@ def truncate_concat_result(
     new_signal = raw.signal[left_trim:right_excl]
     win_end = left_trim + signal_length - 1
 
+    # First pass: detect events whose first or last template primitive has been
+    # truncated entirely. Those events get demoted to inter-event in pass 2.
+    visible_positions_by_event: dict[int, set[int]] = {}
+    for pp in raw.placed:
+        if pp.event_index is None or pp.template_position is None:
+            continue
+        a, b = pp.span
+        if max(a, left_trim) > min(b, win_end):
+            continue
+        visible_positions_by_event.setdefault(pp.event_index, set()).add(
+            pp.template_position
+        )
+    demoted_events: set[int] = {
+        ev for ev, positions in visible_positions_by_event.items()
+        if 0 not in positions or (nb_in_event - 1) not in positions
+    }
+
+    # Compact event_index for surviving events: original ev_idx -> 0..K-1.
+    surviving_orig = sorted(
+        ev for ev, positions in visible_positions_by_event.items()
+        if ev not in demoted_events
+    )
+    event_index_remap: dict[int, int] = {
+        orig: new for new, orig in enumerate(surviving_orig)
+    }
+
     new_placed: list[PlacedPrimitive] = []
-    surviving_event_indices: set[int] = set()
     for pp in raw.placed:
         a, b = pp.span
         vis_a = max(a, left_trim)
@@ -138,9 +169,15 @@ def truncate_concat_result(
         if vis_a > vis_b:
             continue
         cut_left = vis_a - a
-        cut_right = b - vis_b  # samples removed from the right of values
+        cut_right = b - vis_b
         new_values = pp.primitive.values[cut_left : len(pp.primitive.values) - cut_right]
         new_span = (vis_a - left_trim, vis_b - left_trim)
+        if pp.event_index is None or pp.event_index in demoted_events:
+            new_event_index: int | None = None
+            new_tpos: int | None = None
+        else:
+            new_event_index = event_index_remap[pp.event_index]
+            new_tpos = pp.template_position
         new_placed.append(
             PlacedPrimitive(
                 primitive=Primitive(
@@ -151,17 +188,16 @@ def truncate_concat_result(
                     derived=pp.primitive.derived,
                 ),
                 span=new_span,
-                event_index=pp.event_index,
-                template_position=pp.template_position,
+                event_index=new_event_index,
+                template_position=new_tpos,
             )
         )
-        if pp.event_index is not None:
-            surviving_event_indices.add(pp.event_index)
 
     new_event_spans: list[tuple[int, int]] = []
-    for ev_idx, (s, e) in enumerate(raw.event_spans):
-        if ev_idx not in surviving_event_indices:
+    for orig_ev_idx in surviving_orig:
+        if orig_ev_idx >= len(raw.event_spans):
             continue
+        s, e = raw.event_spans[orig_ev_idx]
         vis_s = max(s, left_trim)
         vis_e = min(e, win_end)
         if vis_s > vis_e:

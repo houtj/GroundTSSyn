@@ -89,7 +89,9 @@ def run_steps_1_to_11(
     items = assemble_layout(layout, template, inter)
     raw = concatenate(items)
     if layout.periodical:
-        raw = truncate_concat_result(raw, layout.tile_offset, cfg.signal_length)
+        raw = truncate_concat_result(
+            raw, layout.tile_offset, cfg.signal_length, len(template.primitives)
+        )
     signal, mean, std = z_normalize_with_stats(raw.signal)
 
     assert len(raw.signal) == cfg.signal_length, (
@@ -158,7 +160,10 @@ def run_steps_1_to_19(
     raw_jittered = concatenate(items)
     if base.layout.periodical:
         raw_jittered = truncate_concat_result(
-            raw_jittered, base.layout.tile_offset, cfg.signal_length
+            raw_jittered,
+            base.layout.tile_offset,
+            cfg.signal_length,
+            len(base.event_template.primitives),
         )
     z_signal, z_mean, z_std = z_normalize_with_stats(raw_jittered.signal)
 

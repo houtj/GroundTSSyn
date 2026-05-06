@@ -264,6 +264,27 @@ def _periodical_event_length_bounds(
     return int(low), int(high)
 
 
+def _periodical_template_can_be_drift_neutral(
+    types: list[PrimitiveType],
+) -> bool:
+    """A periodical event template must be drift-neutral: end_value of the
+    event must equal start_value, otherwise tiled events accumulate drift
+    across the signal (and the jitter step would have to produce inverted
+    inc/dec primitives to compensate, breaking type↔shape consistency).
+
+    Among the primitive types, only INCREASE and DECREASE contribute non-zero
+    drift (peak2peak ≥ 0 always; spike/dip/oscillation/plateau all return to
+    their start_value). So zero net drift is achievable iff:
+      - the template has no inc/dec, OR
+      - it has at least one of each so positive and negative contributions
+        can be balanced by the drift_limit logic.
+    A template with only-increase or only-decrease cannot balance.
+    """
+    has_inc = any(t == PrimitiveType.INCREASE for t in types)
+    has_dec = any(t == PrimitiveType.DECREASE for t in types)
+    return has_inc == has_dec
+
+
 def _plan_once_periodical(cfg: Config, rng: np.random.Generator) -> Layout:
     # Step 1: target full-event count
     n_target = sample_uniform_integer(
@@ -277,6 +298,15 @@ def _plan_once_periodical(cfg: Config, rng: np.random.Generator) -> Layout:
 
     # Step 4: in-event primitive types
     event_template_types = sample_primitive_types(cfg, nb_in_event, rng)
+
+    if cfg.drift_limit and not _periodical_template_can_be_drift_neutral(
+        event_template_types
+    ):
+        raise LayoutInfeasible(
+            f"periodical template {[t.value for t in event_template_types]} "
+            f"cannot achieve zero net drift (only inc or only dec): would "
+            f"force per-event drift to accumulate across tiled occurrences"
+        )
 
     # Step 6: event length, sampled uniformly in the periodical bound formula.
     min_event_length = nb_in_event * cfg.min_primitive_length
