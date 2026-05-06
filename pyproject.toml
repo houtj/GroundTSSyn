@@ -9,6 +9,7 @@ dependencies = [
     "numpy>=2.4.4",
     "pydantic>=2.13.3",
     "pyyaml>=6.0",
+    "setuptools>=69.5.1,<70",
     "tensorboard>=2.20.0",
     "tensorboardx>=2.6",
 ]
