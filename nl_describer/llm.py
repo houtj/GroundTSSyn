@@ -29,6 +29,22 @@ from .config import AzureConfig, Config
 T = TypeVar("T", bound=BaseModel)
 logger = logging.getLogger("nl_describer.llm")
 
+# Running token totals across all structured_call invocations in this process.
+_total_input_tokens: int = 0
+_total_output_tokens: int = 0
+
+
+def reset_token_counters() -> None:
+    """Reset the process-level token accumulators to zero."""
+    global _total_input_tokens, _total_output_tokens
+    _total_input_tokens = 0
+    _total_output_tokens = 0
+
+
+def get_token_totals() -> tuple[int, int]:
+    """Return (total_input_tokens, total_output_tokens) accumulated so far."""
+    return _total_input_tokens, _total_output_tokens
+
 
 def _load_env() -> None:
     """Load .env from repo root if present."""
@@ -132,6 +148,22 @@ def structured_call(
                     f"or model failed schema. raw={completion.choices[0].message}"
                 )
             logger.info("[%s] ok (%.1fs, attempt %d)", agent_name, dt, attempt + 1)
+
+            # Track and display token usage.
+            global _total_input_tokens, _total_output_tokens
+            usage = completion.usage
+            if usage is not None:
+                in_tok = usage.prompt_tokens or 0
+                out_tok = usage.completion_tokens or 0
+                _total_input_tokens += in_tok
+                _total_output_tokens += out_tok
+                print(
+                    f"[tokens] {agent_name}: "
+                    f"in={in_tok:,}  out={out_tok:,}  |  "
+                    f"total_in={_total_input_tokens:,}  total_out={_total_output_tokens:,}",
+                    flush=True,
+                )
+
             return parsed  # type: ignore[return-value]
         except (RateLimitError, APITimeoutError, APIError) as e:
             last_error = e
