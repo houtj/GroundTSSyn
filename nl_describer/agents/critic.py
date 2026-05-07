@@ -24,15 +24,27 @@ _SYSTEM = """You are an expert reviewer of natural-language annotations of a 1D 
   * event_spans: occurrences of the event in the signal (positive_base / positive_variant only)
   * applied_observations: only on positive_variant — what merges / splits / reinterpretations were applied
 
-Your job, for EACH description:
-  1. Check the primitive types named in the text actually look like that shape inside the claimed ts_spans on the global plot.
-  2. Check the quantitative claims (high amplitude, fast oscillation, "spans most of the signal", numeric thresholds) are visually consistent.
-  3. For `negative` descriptions, the structural pattern was already verified by code as not matching anywhere. Your job is only to catch paraphrases that accidentally describe a DIFFERENT but real pattern in the signal.
+General checks, for EACH description (regardless of kind):
+  1. Check that the primitive type named in each chunk actually looks like that shape inside the claimed ts_spans on the global plot (correct type, correct direction, correct location).
+  2. Check that the quantitative / qualitative claims (high amplitude, fast oscillation, "spans most of the signal", numeric thresholds, "convex", "partial recovery", "longer than X", etc.) are visually consistent with the signal inside the grounded spans.
+  3. Check that the chunk ordering in the text matches the temporal ordering of the grounded ts_spans within each event.
+
+Per-kind guidance — apply ALL three of these, do NOT skip positive_base:
+  * `positive_base` — this is the canonical paraphrase of the extracted template. You MUST critique it with the same rigor as the others. Common failure modes to look for:
+      - the primitive_phrase in a chunk uses a word that implies the WRONG type or wrong direction (e.g. saying "rise" or "spike" for a chunk that grounds to a decrease/dip; saying "plateau" for a sloped segment; calling a short blip a "long" event).
+      - a constraint paraphrase flips the operator semantics ("around 7" instead of "greater than 7"; "shorter than" instead of "longer than"; dropping a negation).
+      - a constraint paraphrase silently drops a constraint or invents one not in the input.
+      - the grounded ts_spans for a chunk visibly contain a DIFFERENT primitive type than the text claims.
+    Treat positive_base as a first-class candidate for `borderline` or `reject` whenever any of these occur. Do NOT default to `accept` just because it is the base description.
+  * `positive_variant` — additionally validate that the `applied_observations` (merge / split / reinterpret tags) are consistent with what the text and ts_spans show; reject if a "merge" chunk grounds to clearly disjoint segments of different shapes, a "split" chunk's two halves do not actually look like the two claimed sub-types, or a "reinterpret" chunk's new type does not visually fit.
+  * `negative` — the structural pattern was already verified by code as not matching anywhere. Your only extra job here is to catch paraphrases that accidentally describe a DIFFERENT but real pattern in the signal.
 
 Verdicts:
   * accept — the description is faithful and correctly grounded.
-  * borderline — minor issue (slight wording mismatch); usable.
-  * reject — at least one wrong type, wrong direction, or grounded-to-wrong-region claim.
+  * borderline — minor issue (slight wording mismatch, mild over-claim); usable but flag the issue in `issues`.
+  * reject — at least one wrong type, wrong direction, dropped/invented constraint, flipped operator, or grounded-to-wrong-region claim.
+
+Always populate `issues` with a short, concrete reason whenever the verdict is `borderline` or `reject` (e.g. "chunk 2 says 'spike' but ts_span [120,138] is a downward dip"). For `accept`, leave `issues` empty.
 
 If a span is too small / overlapping to judge from the global plot, set free_zoom_request=[s, e] for ONE slice you want zoomed in. Use this sparingly — only when you genuinely cannot decide.
 """
@@ -64,9 +76,19 @@ def run_critic(
         return []
 
     payload = [_slim_description(d, i) for i, d in enumerate(descriptions)]
+    kinds_summary = ", ".join(
+        f"#{i}={d.kind}" for i, d in enumerate(descriptions)
+    )
     text = (
-        "Review every description below using the attached global_plot. "
-        "Return a CritiqueOutput with one CritiqueItem per description.\n\n"
+        "Review every description below using the attached global_plot, "
+        "INCLUDING any with kind='positive_base'. Apply the same critique "
+        "rigor to positive_base as to positive_variant and negative — do "
+        "not auto-accept it. For each description, return a CritiqueItem "
+        "with description_index, verdict (accept|borderline|reject), and "
+        "concrete `issues` strings whenever verdict is borderline or "
+        "reject. Return a CritiqueOutput with one CritiqueItem per "
+        f"description (you must produce {len(descriptions)} items, one "
+        f"for each of: {kinds_summary}).\n\n"
         + json.dumps(payload, indent=2, default=str)
     )
     user_msg = make_vision_message(text, [("global_plot", global_png)])
