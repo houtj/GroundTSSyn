@@ -1,0 +1,49 @@
+azure:
+  endpoint_env: AZURE_OPENAI_ENDPOINT
+  api_key_env: AZURE_OPENAI_API_KEY
+  deployment_env: AZURE_OPENAI_DEPLOYMENT
+  api_version_env: AZURE_OPENAI_API_VERSION
+
+generation:
+  n_positive_variants: 5
+  max_negatives: 5
+  n_observations_max: 8
+  variant_observation_subset:
+    min: 1
+    max: 3
+
+vision:
+  global_plot:
+    width: 14
+    height: 4
+    dpi: 100
+  event_plot:
+    width: 8
+    height: 4
+    dpi: 100
+  slice_plot:
+    width: 8
+    height: 3
+    dpi: 100
+
+candidates:
+  merge_cp_max: 0.4
+  reinterpret_vis_max: 0.4
+  split_cp_max: 0.4
+
+llm:
+  base_describer:
+    temperature: 0.7
+  variant_observe:
+    temperature: 0.4
+  variant_generate:
+    temperature: 0.6
+  critic:
+    temperature: 0.0
+  retries: 2
+  request_timeout_s: 120
+
+bucketize:
+  amplitude_anchors: [0.33, 0.66]
+  duration_anchors: [0.05, 0.20]
+  frequency_anchors: [0.10, 0.25]

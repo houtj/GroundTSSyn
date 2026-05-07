@@ -42,7 +42,7 @@ class Schema(RootModel[dict[str, dict[str, FeatureSpec]]]):
     """Top-level schema: {primitive_name: {feature_name: FeatureSpec}}."""
 
     @classmethod
-    def load(cls, path: str | Path = "feature_schema.yaml") -> "Schema":
+    def load(cls, path: str | Path = "data_gen/feature_schema.yaml") -> "Schema":
         with open(path) as f:
             return cls.model_validate(yaml.safe_load(f))
 

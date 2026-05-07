@@ -77,7 +77,7 @@ class Config(BaseModel):
     negation: NegationConfig = NegationConfig()
 
     @classmethod
-    def load(cls, path: str | Path = "config.yaml") -> "Config":
+    def load(cls, path: str | Path = "data_gen/config.yaml") -> "Config":
         with open(path) as f:
             return cls.model_validate(yaml.safe_load(f))
 
