@@ -62,6 +62,24 @@ class BucketizeConfig(BaseModel):
     frequency_anchors: list[float] = Field(default_factory=lambda: [0.10, 0.25])
 
 
+class LengthLimitConfig(BaseModel):
+    """Hard cap on the BERT-tokenized length of every persisted description.
+
+    `max_bert_tokens` is the absolute limit enforced in code (counted with
+    `tokenizer_model`'s WordPiece tokenizer, including [CLS]/[SEP]). The
+    soft_* fields are advertised to the LLM in system prompts; they are
+    intentionally lower than the hard cap to leave headroom for sub-token
+    splits. `retry_on_overflow` controls whether to re-call the agent once
+    with a "be more concise" instruction before dropping.
+    """
+
+    max_bert_tokens: int = 512
+    tokenizer_model: str = "bert-base-uncased"
+    soft_word_budget: int = 300
+    soft_char_budget: int = 1800
+    retry_on_overflow: bool = True
+
+
 class Config(BaseModel):
     azure: AzureConfig = Field(default_factory=AzureConfig)
     generation: GenerationConfig = Field(default_factory=GenerationConfig)
@@ -69,6 +87,7 @@ class Config(BaseModel):
     candidates: CandidatesConfig = Field(default_factory=CandidatesConfig)
     llm: LLMConfig = Field(default_factory=LLMConfig)
     bucketize: BucketizeConfig = Field(default_factory=BucketizeConfig)
+    length_limit: LengthLimitConfig = Field(default_factory=LengthLimitConfig)
 
     @classmethod
     def load(cls, path: str | Path) -> "Config":

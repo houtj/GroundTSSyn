@@ -46,6 +46,28 @@ Examples of varied constraint phrases:
 """
 
 
+def _length_budget_block(cfg: Config) -> str:
+    """Length-budget snippet appended to the system prompt.
+
+    The numbers come from `cfg.length_limit` so the LLM is informed of the
+    same budget that code will hard-enforce (with headroom for sub-token
+    expansion in WordPiece).
+    """
+    return (
+        "\n\nLength budget (CRITICAL):\n"
+        f"- The full assembled description for each item (positive base, each negative) must stay under "
+        f"~{cfg.length_limit.soft_word_budget} words and ~{cfg.length_limit.soft_char_budget} characters total, "
+        f"so it fits a {cfg.length_limit.max_bert_tokens}-token BERT input window.\n"
+        "- The 'full assembled description' is every primitive_phrase + its constraint_phrases, joined as "
+        "`primitive: c, c; primitive: c, c`. Count them all together, not per-chunk.\n"
+        "- Prefer terse, direct phrasing over decorative synonyms when many constraints stack up.\n"
+        "- Keep individual chunks 3-10 words (already required above); when many positions or constraints "
+        "are present, lean to the lower end of that range.\n"
+        "- Numbers, hyphenated terms, and rare words count as multiple tokens, not one. Round numbers "
+        "and avoid compound jargon when you can express the same claim plainly."
+    )
+
+
 def _build_user_payload(
     basic_output: dict[str, Any],
     cfg: Config,
@@ -139,10 +161,21 @@ def run_base_describer(
     client: AzureOpenAI,
     deployment: str,
     cfg: Config,
+    *,
+    extra_instruction: str | None = None,
 ) -> BaseAgentOutput:
+    """Run the base describer.
+
+    `extra_instruction`, when provided, is prepended to the user payload —
+    used by the pipeline to inject a "your previous output exceeded the
+    length budget; be more concise" hint on retry.
+    """
     user_text = _build_user_payload(basic_output, cfg)
+    if extra_instruction:
+        user_text = extra_instruction.strip() + "\n\n" + user_text
+    system = _SYSTEM + _length_budget_block(cfg)
     messages = [
-        {"role": "system", "content": _SYSTEM},
+        {"role": "system", "content": system},
         {"role": "user", "content": user_text},
     ]
     return structured_call(

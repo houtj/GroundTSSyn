@@ -14,4 +14,5 @@ dependencies = [
     "setuptools>=69.5.1,<70",
     "tensorboard>=2.20.0",
     "tensorboardx>=2.6",
+    "tokenizers>=0.20",
 ]

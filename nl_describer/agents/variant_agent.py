@@ -72,6 +72,25 @@ Critical:
 """
 
 
+def _length_budget_block(cfg: Config) -> str:
+    """Length-budget snippet appended to the generate system prompt.
+
+    Same numbers as the base describer; informs the LLM that the assembled
+    variant text must fit a 512-token BERT window.
+    """
+    return (
+        "\n\nLength budget (CRITICAL):\n"
+        f"- The full assembled variant description (every primitive_phrase + its constraint_phrases, "
+        f"joined as `primitive: c, c; primitive`) must stay under ~{cfg.length_limit.soft_word_budget} words "
+        f"and ~{cfg.length_limit.soft_char_budget} characters in total, so it fits a "
+        f"{cfg.length_limit.max_bert_tokens}-token BERT input window.\n"
+        "- Prefer terse, direct phrasing; avoid decorative synonyms when many constraints stack up.\n"
+        "- Keep individual chunks 3-10 words; lean to the lower end when many positions are present.\n"
+        "- Numbers, hyphenated terms, and rare words count as multiple tokens. Round numbers and avoid "
+        "compound jargon when the same claim can be made plainly."
+    )
+
+
 def _build_observe_payload(
     basic_output: dict[str, Any],
     merge_cands: list[dict[str, Any]],
@@ -369,10 +388,20 @@ def run_generate_variant(
     client: AzureOpenAI,
     deployment: str,
     cfg: Config,
+    *,
+    extra_instruction: str | None = None,
 ) -> VariantOutput:
+    """Generate one variant.
+
+    `extra_instruction`, when provided, is prepended to the user payload —
+    used by the pipeline to inject a length-budget retry hint.
+    """
     text = _build_generate_payload(base_chunks, observations, basic_output, cfg)
+    if extra_instruction:
+        text = extra_instruction.strip() + "\n\n" + text
+    system = _GENERATE_SYSTEM + _length_budget_block(cfg)
     messages = [
-        {"role": "system", "content": _GENERATE_SYSTEM},
+        {"role": "system", "content": system},
         {"role": "user", "content": text},
     ]
     return structured_call(

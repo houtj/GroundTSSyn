@@ -46,6 +46,7 @@ from .schemas import (
     GroundingChunk,
     VariantOutput,
 )
+from .token_limit import count_bert_tokens
 from .verifier import (
     assemble_string_from_chunks,
     extract_features_for_window,
@@ -188,6 +189,26 @@ def _build_variant_descriptions(
     return out
 
 
+def _bert_tokens(text: str, cfg: Config) -> int:
+    return count_bert_tokens(text, cfg.length_limit.tokenizer_model)
+
+
+def _within_token_budget(text: str, cfg: Config) -> bool:
+    return _bert_tokens(text, cfg) <= cfg.length_limit.max_bert_tokens
+
+
+def _length_overflow_hint(cfg: Config) -> str:
+    """Extra-instruction text injected on retry after a length overflow."""
+    target_words = max(50, cfg.length_limit.soft_word_budget // 2)
+    return (
+        f"NOTE: A previous attempt produced one or more descriptions that exceeded the "
+        f"{cfg.length_limit.max_bert_tokens}-token BERT budget. Be substantially more concise "
+        f"this time: aim for ~{target_words} words per assembled description, drop decorative "
+        "synonyms, and shorten or simplify constraint phrases. Do NOT change semantics, but "
+        "prefer the plainest wording that still preserves operator meaning."
+    )
+
+
 def _gate_variant_constraints(
     variant: Description,
     variant_out: VariantOutput,
@@ -270,14 +291,64 @@ def describe_sample(
     client, deployment = make_client(cfg.azure)
     logger.info("Azure OpenAI client ready (deployment=%s)", deployment)
 
-    # Step 3: BaseDescriber
+    # Step 3: BaseDescriber (with one retry if the assembled text overflows
+    # the BERT-token budget; the retry is on the whole agent call because
+    # positive_base + all negatives come from a single structured response).
     base_out = run_base_describer(basic_output, client, deployment, cfg)
     positive_base, negatives = _build_base_descriptions(base_out, basic_output)
     logger.info(
         "Base describer: positive_base + %d negatives produced", len(negatives)
     )
 
-    # Step 4: gate negatives
+    if cfg.length_limit.retry_on_overflow:
+        over: list[str] = []
+        if not _within_token_budget(positive_base.text, cfg):
+            over.append(f"positive_base({_bert_tokens(positive_base.text, cfg)}t)")
+        for i, n in enumerate(negatives):
+            if not _within_token_budget(n.text, cfg):
+                over.append(f"negative[{i}]({_bert_tokens(n.text, cfg)}t)")
+        if over:
+            logger.warning(
+                "base_describer over BERT-token budget %d: %s; retrying once",
+                cfg.length_limit.max_bert_tokens,
+                over,
+            )
+            try:
+                base_out = run_base_describer(
+                    basic_output,
+                    client,
+                    deployment,
+                    cfg,
+                    extra_instruction=_length_overflow_hint(cfg),
+                )
+                positive_base, negatives = _build_base_descriptions(
+                    base_out, basic_output
+                )
+            except Exception as e:
+                logger.warning("base_describer retry failed: %s", e)
+
+    # Step 4a: hard length gate (drop survivors that still exceed)
+    if not _within_token_budget(positive_base.text, cfg):
+        logger.error(
+            "positive_base still over BERT-token budget after retry: %dt > %d; dropping",
+            _bert_tokens(positive_base.text, cfg),
+            cfg.length_limit.max_bert_tokens,
+        )
+        positive_base = None  # type: ignore[assignment]
+    kept_negatives: list[Description] = []
+    for i, n in enumerate(negatives):
+        if _within_token_budget(n.text, cfg):
+            kept_negatives.append(n)
+        else:
+            logger.warning(
+                "negative[%d] dropped: over BERT-token budget (%dt > %d)",
+                i,
+                _bert_tokens(n.text, cfg),
+                cfg.length_limit.max_bert_tokens,
+            )
+    negatives = kept_negatives
+
+    # Step 4b: gate negatives against signal pattern (existing semantic gate)
     negatives, _dropped = _gate_negatives(negatives, basic_output)
     logger.info(
         "Negative gate: %d kept, %d dropped (matched somewhere in signal)",
@@ -327,6 +398,43 @@ def describe_sample(
         if not built:
             continue
         variant_desc = built[0]
+
+        # Length gate with optional one-retry. Re-call the agent with a
+        # "be more concise" hint, then re-build and re-check; drop on
+        # second failure.
+        if not _within_token_budget(variant_desc.text, cfg):
+            tokens_before = _bert_tokens(variant_desc.text, cfg)
+            if cfg.length_limit.retry_on_overflow:
+                logger.warning(
+                    "variant over BERT-token budget (%dt > %d); retrying once",
+                    tokens_before,
+                    cfg.length_limit.max_bert_tokens,
+                )
+                try:
+                    variant_out = run_generate_variant(
+                        base_out.positive_chunks,
+                        subset,
+                        basic_output,
+                        client,
+                        deployment,
+                        cfg,
+                        extra_instruction=_length_overflow_hint(cfg),
+                    )
+                    rebuilt = _build_variant_descriptions(
+                        [(variant_out, applied_tags)], basic_output
+                    )
+                    if rebuilt:
+                        variant_desc = rebuilt[0]
+                except Exception as e:
+                    logger.warning("variant retry failed: %s", e)
+            if not _within_token_budget(variant_desc.text, cfg):
+                logger.warning(
+                    "variant dropped: still over BERT-token budget (%dt > %d)",
+                    _bert_tokens(variant_desc.text, cfg),
+                    cfg.length_limit.max_bert_tokens,
+                )
+                continue
+
         if not matches_format(variant_desc.text):
             logger.warning("variant rejected: bad format -> %s", variant_desc.text)
             continue
@@ -336,12 +444,16 @@ def describe_sample(
         variants_descs.append(variant_desc)
 
     # Format check on positive_base too
-    if not matches_format(positive_base.text):
+    if positive_base is not None and not matches_format(positive_base.text):
         logger.warning(
             "positive_base failed format regex; keeping anyway: %s", positive_base.text
         )
 
-    all_descriptions: list[Description] = [positive_base] + variants_descs + negatives
+    all_descriptions: list[Description] = []
+    if positive_base is not None:
+        all_descriptions.append(positive_base)
+    all_descriptions.extend(variants_descs)
+    all_descriptions.extend(negatives)
 
     # Step 8: Critic
     try:
