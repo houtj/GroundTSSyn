@@ -5,6 +5,7 @@ from typing import Any, Literal
 from pydantic import BaseModel
 
 from data_gen.constraints import Constraint, ConstraintsResult, evaluate_constraint
+from data_gen.negation import NegativeGrounding
 from data_gen.post_match import ExtraOccurrence
 from data_gen.recompute import NormedFeatures
 from data_gen.types import ConcatResult, PrimitiveType
@@ -97,6 +98,7 @@ class BasicOutput(BaseModel):
     whole_time_series_layout: list[LayoutEntry] = []
     grounding: list[GroundedPrimitiveOut]
     event_spans: list[tuple[int, int]]
+    neg_groundings: list[NegativeGrounding] = []
 
 
 class OccurrenceVerification(BaseModel):

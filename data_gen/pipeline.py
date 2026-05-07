@@ -228,6 +228,7 @@ def run_steps_1_to_19(
         post_match_extras=extras,
         z_signal=z_signal,
     )
+    basic_output = basic_output.model_copy(update={"neg_groundings": neg_groundings})
 
     return FinalPipelineResult(
         extended=extended,
