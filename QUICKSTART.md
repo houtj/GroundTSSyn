@@ -93,11 +93,12 @@ nb_constraints: [0, 3]      # constraints sampled per template position
 
 ### Batch generation with TensorBoard
 
-Generate N samples (seeds 0 to N−1) and log statistics to TensorBoard:
+Generate N samples and log statistics to TensorBoard:
 
 ```bash
 uv run python -m tests.batch_generate --n 100
-uv run python -m tests.batch_generate --n 100 --plot   # also saves a PNG per sample
+uv run python -m tests.batch_generate --n 100 --plot        # also saves a PNG per sample
+uv run python -m tests.batch_generate --n 100 --n-start 200 # seeds 200–299
 tensorboard --logdir tests/out/tb
 ```
 
@@ -106,6 +107,7 @@ Key options:
 | Flag | Default | Description |
 |---|---|---|
 | `--n` | *(required)* | Number of samples to generate |
+| `--n-start` | `0` | Starting seed (seeds run from `n_start` to `n_start + n − 1`) |
 | `--out-dir` | `tests/out/batch` | Output directory for per-sample JSON files |
 | `--no-json` | off | Skip writing per-sample JSON files |
 | `--tb-dir` | `tests/out/tb` | TensorBoard log directory |
