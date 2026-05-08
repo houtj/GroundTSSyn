@@ -46,26 +46,43 @@ Examples of varied constraint phrases:
 """
 
 
-def _length_budget_block(cfg: Config) -> str:
-    """Length-budget snippet appended to the system prompt.
+def _length_budget_line(cfg: Config) -> str:
+    """One-line length budget reminder, appended to the user message.
 
-    The numbers come from `cfg.length_limit` so the LLM is informed of the
-    same budget that code will hard-enforce (with headroom for sub-token
-    expansion in WordPiece).
+    Replaces the older multi-bullet block in the system prompt: same hard
+    numbers (`cfg.length_limit`) but ~10x shorter. Phrased to remind the
+    model of the constraint without re-explaining the assembly format,
+    which is already covered in the system prompt.
     """
     return (
-        "\n\nLength budget (CRITICAL):\n"
-        f"- The full assembled description for each item (positive base, each negative) must stay under "
-        f"~{cfg.length_limit.soft_word_budget} words and ~{cfg.length_limit.soft_char_budget} characters total, "
-        f"so it fits a {cfg.length_limit.max_bert_tokens}-token BERT input window.\n"
-        "- The 'full assembled description' is every primitive_phrase + its constraint_phrases, joined as "
-        "`primitive: c, c; primitive: c, c`. Count them all together, not per-chunk.\n"
-        "- Prefer terse, direct phrasing over decorative synonyms when many constraints stack up.\n"
-        "- Keep individual chunks 3-10 words (already required above); when many positions or constraints "
-        "are present, lean to the lower end of that range.\n"
-        "- Numbers, hyphenated terms, and rare words count as multiple tokens, not one. Round numbers "
-        "and avoid compound jargon when you can express the same claim plainly."
+        f"Length budget: full assembled description (every primitive_phrase + constraint_phrases joined) "
+        f"<= ~{cfg.length_limit.soft_word_budget} words / "
+        f"~{cfg.length_limit.soft_char_budget} chars, fits a "
+        f"{cfg.length_limit.max_bert_tokens}-token BERT window. Prefer terse phrasing."
     )
+
+
+def _slim_constraint(cs: dict[str, Any], *, for_negative: bool) -> dict[str, Any]:
+    """Drop fields the LLM doesn't need to paraphrase the constraint.
+
+    Conservative slim: keep `op` + `threshold` (semantics-preserving) and
+    `realized_bucket` (magnitude hint). Drop the redundant raw
+    `realized_value` for positives. For negatives, drop both the raw value
+    AND the bucket — negatives don't realize anywhere meaningful, so any
+    realized-* field is misleading noise to the paraphraser.
+    """
+    out = dict(cs)
+    kind = cs.get("kind")
+    if kind == "numerical":
+        out.pop("realized_value", None)
+        if for_negative:
+            out.pop("realized_bucket", None)
+    elif kind == "comparable":
+        for side in ("lhs", "rhs"):
+            v = out.get(side)
+            if isinstance(v, dict):
+                out[side] = {k: vv for k, vv in v.items() if k != "realized_value"}
+    return out
 
 
 def _build_user_payload(
@@ -99,8 +116,11 @@ def _build_user_payload(
                     feats, globals_, signal_length, cfg.bucketize
                 ),
                 "constraints": [
-                    constraint_summary(
-                        c, template_types, globals_, signal_length, cfg.bucketize
+                    _slim_constraint(
+                        constraint_summary(
+                            c, template_types, globals_, signal_length, cfg.bucketize
+                        ),
+                        for_negative=False,
                     )
                     for c in g.get("constraints", [])
                 ],
@@ -118,8 +138,11 @@ def _build_user_payload(
                     "template_index": entry.get("template_index"),
                     "type": entry.get("type"),
                     "constraints": [
-                        constraint_summary(
-                            c, template_types, globals_, signal_length, cfg.bucketize
+                        _slim_constraint(
+                            constraint_summary(
+                                c, template_types, globals_, signal_length, cfg.bucketize
+                            ),
+                            for_negative=True,
                         )
                         for c in entry.get("constraints", [])
                     ],
@@ -127,21 +150,12 @@ def _build_user_payload(
             )
         negatives_payload.append({"mutation": neg.get("mutation"), "grounding": items})
 
+    # Static-prefix-friendly key order: signal_length, then positive/negatives
+    # which depend on it. `globals` and `template_types` were dropped — the
+    # bucketized feature/constraint summaries already encode magnitude info,
+    # and per-position `type` covers the template type list.
     payload = {
         "signal_length": signal_length,
-        "globals": {
-            k: globals_.get(k)
-            for k in (
-                "min",
-                "max",
-                "mean",
-                "std",
-                "peak2peak",
-                "frequency",
-                "histogram_peak",
-            )
-        },
-        "template_types": template_types,
         "positive": positive_payload,
         "negatives": negatives_payload,
     }
@@ -151,9 +165,10 @@ def _build_user_payload(
         "Each BaseChunk has template_index, primitive_phrase, and constraint_phrases (one per input constraint, same order).\n"
         "  negatives: one NegativeDescription per negative seed (same order as input). "
         "Each NegativeDescription has chunks: list[NegativeChunk], one per position in that seed's grounding.\n\n"
-        "Input data follows as JSON:\n"
+        + _length_budget_line(cfg)
+        + "\n\nInput data follows as JSON:\n"
     )
-    return instruction + json.dumps(payload, indent=2, default=str)
+    return instruction + json.dumps(payload, separators=(",", ":"), default=str)
 
 
 def run_base_describer(
@@ -173,9 +188,8 @@ def run_base_describer(
     user_text = _build_user_payload(basic_output, cfg)
     if extra_instruction:
         user_text = extra_instruction.strip() + "\n\n" + user_text
-    system = _SYSTEM + _length_budget_block(cfg)
     messages = [
-        {"role": "system", "content": system},
+        {"role": "system", "content": _SYSTEM},
         {"role": "user", "content": user_text},
     ]
     return structured_call(

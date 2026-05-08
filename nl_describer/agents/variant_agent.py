@@ -72,22 +72,13 @@ Critical:
 """
 
 
-def _length_budget_block(cfg: Config) -> str:
-    """Length-budget snippet appended to the generate system prompt.
-
-    Same numbers as the base describer; informs the LLM that the assembled
-    variant text must fit a 512-token BERT window.
-    """
+def _length_budget_line(cfg: Config) -> str:
+    """One-line length budget reminder appended to the generate user message."""
     return (
-        "\n\nLength budget (CRITICAL):\n"
-        f"- The full assembled variant description (every primitive_phrase + its constraint_phrases, "
-        f"joined as `primitive: c, c; primitive`) must stay under ~{cfg.length_limit.soft_word_budget} words "
-        f"and ~{cfg.length_limit.soft_char_budget} characters in total, so it fits a "
-        f"{cfg.length_limit.max_bert_tokens}-token BERT input window.\n"
-        "- Prefer terse, direct phrasing; avoid decorative synonyms when many constraints stack up.\n"
-        "- Keep individual chunks 3-10 words; lean to the lower end when many positions are present.\n"
-        "- Numbers, hyphenated terms, and rare words count as multiple tokens. Round numbers and avoid "
-        "compound jargon when the same claim can be made plainly."
+        f"Length budget: full assembled variant description "
+        f"<= ~{cfg.length_limit.soft_word_budget} words / "
+        f"~{cfg.length_limit.soft_char_budget} chars, fits a "
+        f"{cfg.length_limit.max_bert_tokens}-token BERT window. Prefer terse phrasing."
     )
 
 
@@ -124,7 +115,7 @@ def _build_observe_payload(
     }
     return (
         "You see two attached PNGs (global_plot and event_plot). JSON context:\n"
-        + json.dumps(payload, indent=2, default=str)
+        + json.dumps(payload, separators=(",", ":"), default=str)
     )
 
 
@@ -364,11 +355,13 @@ def _build_generate_payload(
         }
         for c in base_chunks
     ]
-    template_prims = basic_output.get("template", {}).get("primitives", [])
-    types_by_pos = {int(p["template_index"]): p.get("type") for p in template_prims}
 
+    # Static-prefix-friendly key order: base_chunks (constant within a sample
+    # across all variants) first, then observations_to_apply (varies per
+    # variant). `template_types_by_index` was dropped — base_chunks already
+    # carry the per-position info the model needs, and each observation
+    # carries its own `new_type`.
     payload = {
-        "template_types_by_index": types_by_pos,
         "base_chunks": base_payload,
         "observations_to_apply": obs_payload,
     }
@@ -376,8 +369,10 @@ def _build_generate_payload(
         "Apply the listed observations and emit a VariantOutput.chunks list "
         "covering every template position exactly once (merges collapse, "
         "splits expand). Use the feature_summary_for_new_span when phrasing "
-        "constraints on a merged/split/reinterpreted chunk.\n\n"
-        + json.dumps(payload, indent=2, default=str)
+        "constraints on a merged/split/reinterpreted chunk.\n"
+        + _length_budget_line(cfg)
+        + "\n\n"
+        + json.dumps(payload, separators=(",", ":"), default=str)
     )
 
 
@@ -399,9 +394,8 @@ def run_generate_variant(
     text = _build_generate_payload(base_chunks, observations, basic_output, cfg)
     if extra_instruction:
         text = extra_instruction.strip() + "\n\n" + text
-    system = _GENERATE_SYSTEM + _length_budget_block(cfg)
     messages = [
-        {"role": "system", "content": system},
+        {"role": "system", "content": _GENERATE_SYSTEM},
         {"role": "user", "content": text},
     ]
     return structured_call(

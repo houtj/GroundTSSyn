@@ -89,7 +89,7 @@ def run_critic(
         "reject. Return a CritiqueOutput with one CritiqueItem per "
         f"description (you must produce {len(descriptions)} items, one "
         f"for each of: {kinds_summary}).\n\n"
-        + json.dumps(payload, indent=2, default=str)
+        + json.dumps(payload, separators=(",", ":"), default=str)
     )
     user_msg = make_vision_message(text, [("global_plot", global_png)])
     messages = [
@@ -128,7 +128,7 @@ def run_critic(
                     "attached. Re-decide the verdict for this single description. "
                     "Return a CritiqueOutput.items with EXACTLY ONE CritiqueItem "
                     f"having description_index={it.description_index}.\n\n"
-                    + json.dumps(zoom_payload, indent=2, default=str)
+                    + json.dumps(zoom_payload, separators=(",", ":"), default=str)
                 )
                 zoom_msg = make_vision_message(
                     zoom_text,

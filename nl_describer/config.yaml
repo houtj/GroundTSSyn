@@ -14,7 +14,7 @@ generation:
 
 vision:
   global_plot:
-    width: 14
+    width: 10
     height: 4
     dpi: 100
   event_plot:
