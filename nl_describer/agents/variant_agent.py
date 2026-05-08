@@ -69,6 +69,19 @@ Critical:
 - Wording must be varied (do not just append "(merged)" — fully rewrite the chunk in natural language).
 - Operator semantics on constraints must be preserved.
 - If a constraint can no longer be expressed for a merged/split/reinterpreted span (e.g. plateau has no slope), OMIT it; do not invent a substitute.
+
+Constraint budget for variants (CRITICAL):
+- The full assembled variant description must contain AT MOST 2 constraint_phrases in TOTAL across all chunks combined. Most chunks should therefore have an empty constraint_phrases list. Pick the 1-2 most distinctive / visually salient constraints to keep and DROP the rest. (You may always drop a constraint; you may never invent one.)
+
+Duration phrasing (CRITICAL):
+- NEVER state an exact sample count for any duration-related constraint. Use qualitative / bucketed wording (e.g. "short", "long", "brief", "extended", "very brief") or relative comparisons ("lasting about as long as the spike"). Forbidden examples: "lasting 12 samples", "for 30 samples", "about 14 samples", "~12 samples". This applies to BOTH `duration` numerical constraints AND `duration`-vs-`duration` comparable constraints.
+
+Cross-variant diversity (CRITICAL):
+- This is one of several variants generated for the SAME underlying signal. You will be shown the chunks of every previously-generated variant under `previous_variants`. Your output must differ meaningfully from ALL of them. Specifically:
+  * Attach your (at most 2) constraint_phrases to DIFFERENT primitive positions than the previous variants did, whenever possible.
+  * Use DIFFERENT primitive_phrase wording — do not reuse the same synonym a previous variant already used for the same template position (e.g. if a prior variant called position 0 "wavy section", choose another synonym such as "fluctuating segment" or "oscillating stretch").
+  * Use DIFFERENT phrasings for any constraint you do keep (different verbs, different bucket synonyms, different sentence shape).
+  * Across the whole batch of variants, aim to cover different operations / different new_types / different positions; do not converge on the same shape every time.
 """
 
 
@@ -288,6 +301,7 @@ def _build_generate_payload(
     observations: list[Observation],
     basic_output: dict[str, Any],
     cfg: Config,
+    previous_variants: list[VariantOutput] | None = None,
 ) -> str:
     grounding = basic_output.get("grounding", [])
     globals_ = basic_output.get("globals", {})
@@ -356,6 +370,21 @@ def _build_generate_payload(
         for c in base_chunks
     ]
 
+    prev_payload: list[dict[str, Any]] = []
+    for i, prev in enumerate(previous_variants or []):
+        prev_chunks = []
+        for c in prev.chunks:
+            prev_chunks.append(
+                {
+                    "derived_from": list(c.derived_from),
+                    "op_applied": c.op_applied,
+                    "new_type": getattr(c.new_type, "value", c.new_type),
+                    "primitive_phrase": c.primitive_phrase,
+                    "constraint_phrases": list(c.constraint_phrases),
+                }
+            )
+        prev_payload.append({"variant_index": i, "chunks": prev_chunks})
+
     # Static-prefix-friendly key order: base_chunks (constant within a sample
     # across all variants) first, then observations_to_apply (varies per
     # variant). `template_types_by_index` was dropped — base_chunks already
@@ -364,12 +393,15 @@ def _build_generate_payload(
     payload = {
         "base_chunks": base_payload,
         "observations_to_apply": obs_payload,
+        "previous_variants": prev_payload,
     }
     return (
         "Apply the listed observations and emit a VariantOutput.chunks list "
         "covering every template position exactly once (merges collapse, "
         "splits expand). Use the feature_summary_for_new_span when phrasing "
-        "constraints on a merged/split/reinterpreted chunk.\n"
+        "constraints on a merged/split/reinterpreted chunk. Read "
+        "`previous_variants` and produce wording / constraint placement "
+        "that meaningfully differs from every entry there.\n"
         + _length_budget_line(cfg)
         + "\n\n"
         + json.dumps(payload, separators=(",", ":"), default=str)
@@ -385,13 +417,21 @@ def run_generate_variant(
     cfg: Config,
     *,
     extra_instruction: str | None = None,
+    previous_variants: list[VariantOutput] | None = None,
 ) -> VariantOutput:
     """Generate one variant.
 
     `extra_instruction`, when provided, is prepended to the user payload —
     used by the pipeline to inject a length-budget retry hint.
+
+    `previous_variants`, when provided, is the list of VariantOutputs that
+    have already been accepted for this same sample. They are surfaced to
+    the LLM so it can produce wording / constraint placement that
+    meaningfully differs across the batch.
     """
-    text = _build_generate_payload(base_chunks, observations, basic_output, cfg)
+    text = _build_generate_payload(
+        base_chunks, observations, basic_output, cfg, previous_variants
+    )
     if extra_instruction:
         text = extra_instruction.strip() + "\n\n" + text
     messages = [

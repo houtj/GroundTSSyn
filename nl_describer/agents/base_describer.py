@@ -29,6 +29,7 @@ Critical rules:
 - Do NOT invent constraints. Do NOT change the type at any position. Do NOT skip a constraint.
 - Vary your wording across positions and across calls. For each item pick a paraphrase strategy from {type-synonym, comparative, bucketed-quantitative, metaphor}.
 - Keep each phrase short (3-10 words). Do not include the literal characters ":" or ";" inside a phrase, since they are reserved as our format separators.
+- Duration phrasing: NEVER state an exact sample count for any duration-related constraint. Use qualitative / bucketed wording instead (e.g. "short", "long", "brief", "extended", "very brief", or relative comparisons like "lasting about as long as the spike"). Forbidden examples: "lasting 12 samples", "for 30 samples", "about 14 samples", "~12 samples". This applies to BOTH positive and negative descriptions, and to BOTH `duration` numerical constraints AND `duration`-vs-`duration` comparable constraints.
 
 Examples of varied primitive phrases:
 - spike: "abrupt overshoot", "sharp upward jolt", "sudden peak", "transient pulse"

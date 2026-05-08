@@ -379,13 +379,20 @@ def describe_sample(
         rng,
     )
     variants_descs: list[Description] = []
+    accepted_variant_outs: list[VariantOutput] = []
     for subset in subsets:
         if not subset:
             # Skip empty subsets — no point regenerating positive_base.
             continue
         try:
             variant_out = run_generate_variant(
-                base_out.positive_chunks, subset, basic_output, client, deployment, cfg
+                base_out.positive_chunks,
+                subset,
+                basic_output,
+                client,
+                deployment,
+                cfg,
+                previous_variants=accepted_variant_outs,
             )
         except Exception as e:
             logger.warning("variant_generate failed: %s", e)
@@ -419,6 +426,7 @@ def describe_sample(
                         deployment,
                         cfg,
                         extra_instruction=_length_overflow_hint(cfg),
+                        previous_variants=accepted_variant_outs,
                     )
                     rebuilt = _build_variant_descriptions(
                         [(variant_out, applied_tags)], basic_output
@@ -442,6 +450,7 @@ def describe_sample(
             logger.warning("variant rejected: constraint gate failed")
             continue
         variants_descs.append(variant_desc)
+        accepted_variant_outs.append(variant_out)
 
     # Format check on positive_base too
     if positive_base is not None and not matches_format(positive_base.text):
