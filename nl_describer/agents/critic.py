@@ -38,13 +38,23 @@ Per-kind guidance — apply ALL three of these, do NOT skip positive_base:
     Treat positive_base as a first-class candidate for `borderline` or `reject` whenever any of these occur. Do NOT default to `accept` just because it is the base description.
   * `positive_variant` — additionally validate that the `applied_observations` (merge / split / reinterpret tags) are consistent with what the text and ts_spans show; reject if a "merge" chunk grounds to clearly disjoint segments of different shapes, a "split" chunk's two halves do not actually look like the two claimed sub-types, or a "reinterpret" chunk's new type does not visually fit.
   * `negative` — the structural pattern was already verified by code as not matching anywhere. Your only extra job here is to catch paraphrases that accidentally describe a DIFFERENT but real pattern in the signal.
+    HIGH BAR FOR REJECTING NEGATIVES (read carefully — the default is `accept`):
+      - The whole point of a negative is that some structural detail (a primitive type, a direction, an ordering, or a constraint) is wrong. Such a description will naturally still SHARE most of its primitives with the real motif — that overlap alone is NOT grounds to reject.
+      - Reject ONLY when the FULL ordered chunk sequence in the negative text — every primitive type, in the stated order, with the stated directions and constraints — can be traced contiguously over a single window of the signal. "Most chunks line up but one or two are reordered / wrong type / wrong direction" is exactly what a valid negative looks like; accept it.
+      - Apply these concrete tests before rejecting:
+          (a) Pick the candidate window in the signal that best matches the negative.
+          (b) Walk the negative's chunks left-to-right and check that EACH chunk's primitive type AND its stated direction/constraint is visually present in the corresponding sub-window in that exact order. If ANY chunk fails (wrong type, wrong direction, wrong relative ordering vs its neighbors, or a constraint that does not hold there), the negative is valid — return `accept`.
+          (c) A reordering of two adjacent primitives (e.g. `flat → rise` swapped to `rise → flat`) IS a real structural difference. Do not dismiss it as "middle ordering differs somewhat" — that swap alone is enough to keep the negative valid.
+          (d) A type substitution that changes the shape family (e.g. "sharp valley" instead of "small trough" when no deep valley exists in that position; "downward slope" instead of "brief dip" when the signal does not contain an extended slope there) IS a real structural difference. Accept the negative.
+      - Phrases like "overall it still describes a real recurring pattern", "broadly similar to the motif", or "most of the sequence is visible" are NOT sufficient justification to reject. The matching must be exact-in-order across the full chunk list.
+      - When in doubt about a negative, prefer `accept` (or `borderline` with a note) over `reject`. The downstream code-level gate already filtered structural matches; your job is only to catch the rare case where the paraphrase exactly traces a different real pattern.
 
 Verdicts:
-  * accept — the description is faithful and correctly grounded.
+  * accept — the description is faithful and correctly grounded (for positives), OR (for negatives) the chunk sequence is NOT exactly traceable in order anywhere in the signal.
   * borderline — minor issue (slight wording mismatch, mild over-claim); usable but flag the issue in `issues`.
-  * reject — at least one wrong type, wrong direction, dropped/invented constraint, flipped operator, or grounded-to-wrong-region claim.
+  * reject — at least one wrong type, wrong direction, dropped/invented constraint, flipped operator, or grounded-to-wrong-region claim (for positives), OR (for negatives) the full chunk sequence in order is exactly traceable on a window of the signal.
 
-Always populate `issues` with a short, concrete reason whenever the verdict is `borderline` or `reject` (e.g. "chunk 2 says 'spike' but ts_span [120,138] is a downward dip"). For `accept`, leave `issues` empty.
+Always populate `issues` with a short, concrete reason whenever the verdict is `borderline` or `reject` (e.g. "chunk 2 says 'spike' but ts_span [120,138] is a downward dip"). For `accept`, leave `issues` empty. For a `reject` on a negative, your `issues` MUST cite the specific signal window (approximate sample range) where the full ordered chunk sequence is visible; if you cannot name such a window, do not reject.
 
 If a span is too small / overlapping to judge from the global plot, set free_zoom_request=[s, e] for ONE slice you want zoomed in. Use this sparingly — only when you genuinely cannot decide.
 """

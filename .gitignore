@@ -1,4 +1,7 @@
-tests/*
+tests/out/*
+tests/agentic/out/*
+tests/agentic/eval_runs/*
 .env
-*/__pycache__/*
+**/__pycache__/
 log.csv
+.DS_Store

@@ -41,6 +41,7 @@ import csv
 import json
 import logging
 import multiprocessing as mp
+import re
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -298,16 +299,38 @@ def run_data_gen_seed(
 # NL description
 # ---------------------------------------------------------------------------
 
-def run_nl_desc_seed(seed: int) -> bool:
-    """Run nl_describer for one sample via subprocess.  Returns True on success."""
+# Matches the running-total fields printed by nl_describer.llm.structured_call:
+#   [tokens] <agent>: in=X  out=Y  |  total_in=X  total_out=Y
+_TOKEN_LINE_RE = re.compile(r"total_in=([\d,]+)\s+total_out=([\d,]+)")
+
+
+def _parse_token_totals(stdout: str) -> tuple[int, int] | None:
+    """Return (total_input, total_output) from the last [tokens] line, or None."""
+    last: re.Match | None = None
+    for m in _TOKEN_LINE_RE.finditer(stdout):
+        last = m
+    if last is None:
+        return None
+    return (
+        int(last.group(1).replace(",", "")),
+        int(last.group(2).replace(",", "")),
+    )
+
+
+def run_nl_desc_seed(seed: int) -> tuple[bool, int, int]:
+    """Run nl_describer for one sample via subprocess.
+
+    Returns (success, total_input_tokens, total_output_tokens).
+    Token counts are 0 when the output already existed or the call failed.
+    """
     out_path = _nl_desc_path(seed)
     if out_path.exists():
-        return True
+        return True, 0, 0
 
     in_path = _data_gen_path(seed)
     if not in_path.exists():
         logger.warning(f"[nl_desc] seed={seed}: data-gen output missing, skipping")
-        return False
+        return False, 0, 0
 
     cmd = [
         "uv", "run", "python", "-m", "nl_describer.cli",
@@ -316,16 +339,18 @@ def run_nl_desc_seed(seed: int) -> bool:
         "--seed", str(seed),
     ]
     try:
-        subprocess.run(cmd, capture_output=True, text=True, check=True)
-        return True
+        proc = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        totals = _parse_token_totals(proc.stdout)
+        in_tok, out_tok = totals if totals is not None else (0, 0)
+        return True, in_tok, out_tok
     except subprocess.CalledProcessError as exc:
         logger.error(
             f"[nl_desc] seed={seed} FAILED (exit {exc.returncode}):\n{exc.stderr}"
         )
-        return False
+        return False, 0, 0
     except Exception as exc:
         logger.error(f"[nl_desc] seed={seed} FAILED: {exc}")
-        return False
+        return False, 0, 0
 
 # ---------------------------------------------------------------------------
 # Sub-batch worker
@@ -344,6 +369,13 @@ def process_sub_batch(
       Phase 1 – data generation
       Phase 2 – NL description
     """
+    # Child processes spawned by mp.Pool don't inherit the parent's logging
+    # configuration, so we must set it up here in each worker.
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(name)s] %(levelname)s %(message)s",
+    )
+
     seed_start = int(row["seed_start"])
     seed_end = int(row["seed_end"])
     label = f"[{seed_start},{seed_end})"
@@ -421,9 +453,14 @@ def process_sub_batch(
             )
             continue
 
-        ok = run_nl_desc_seed(seed)
+        ok, in_tok, out_tok = run_nl_desc_seed(seed)
         if not ok:
             new_failures_nl.append(seed)
+        elif in_tok or out_tok:
+            log.info(
+                f"[nl_desc] seed={seed} done | "
+                f"tokens in={in_tok:,}  out={out_tok:,}"
+            )
 
         nb_iter_nl += 1
         all_failed_nl = failed_nl + new_failures_nl
