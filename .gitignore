@@ -5,3 +5,4 @@ tests/agentic/eval_runs/*
 **/__pycache__/
 log.csv
 .DS_Store
+tests/agentic/plots
