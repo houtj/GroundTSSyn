@@ -6,3 +6,4 @@ tests/agentic/eval_runs/*
 log.csv
 .DS_Store
 tests/agentic/plots
+data_synthetized

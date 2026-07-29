@@ -15,11 +15,17 @@ is paid once per process, regardless of how many descriptions we score.
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 from threading import Lock
 
 from tokenizers import Tokenizer
 
 logger = logging.getLogger("nl_describer.token_limit")
+
+# Local, offline copy of bert-base-uncased's tokenizer.json (this server has
+# no network access to the HF Hub). Checked before falling back to
+# `Tokenizer.from_pretrained`, which requires internet access.
+_LOCAL_TOKENIZER_PATH = Path(__file__).parent / "tokenizer.json"
 
 _cache: dict[str, Tokenizer] = {}
 _lock = Lock()
@@ -28,14 +34,27 @@ _lock = Lock()
 def get_tokenizer(model_name: str = "bert-base-uncased") -> Tokenizer:
     """Return a cached `tokenizers.Tokenizer` for the given HF model name.
 
-    The first call downloads `tokenizer.json` from the HF Hub; subsequent
-    calls (in the same process) reuse the in-memory instance. Thread-safe.
+    Prefers the local `nl_describer/tokenizer.json` file when present (no
+    network access required). Otherwise falls back to
+    `Tokenizer.from_pretrained`, which downloads `tokenizer.json` from the HF
+    Hub on first use. Subsequent calls (in the same process) reuse the
+    in-memory instance. Thread-safe.
     """
     with _lock:
         tok = _cache.get(model_name)
         if tok is None:
-            logger.info("loading tokenizer %s (first use)", model_name)
-            tok = Tokenizer.from_pretrained(model_name)
+            if model_name == "bert-base-uncased" and _LOCAL_TOKENIZER_PATH.is_file():
+                logger.info(
+                    "loading tokenizer %s from local file %s (first use)",
+                    model_name,
+                    _LOCAL_TOKENIZER_PATH,
+                )
+                tok = Tokenizer.from_file(str(_LOCAL_TOKENIZER_PATH))
+            else:
+                logger.info(
+                    "loading tokenizer %s from HF Hub (first use)", model_name
+                )
+                tok = Tokenizer.from_pretrained(model_name)
             _cache[model_name] = tok
         return tok
 

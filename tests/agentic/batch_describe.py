@@ -6,6 +6,13 @@ Usage:
     uv run python -m tests.agentic.batch_describe --in-dir tests/out/batch \
         --out-dir tests/agentic/out --workers 4
 
+    # Run only on the validation split listed in a train/test split file
+    # (the split file's `data_dir` is used to locate the raw, un-described
+    # inputs; `--in-dir` is ignored in this mode):
+    uv run python -m tests.agentic.batch_describe \
+        --split-file train_test_split.json --split val \
+        --out-dir output/description_gpt4_1 --workers 4
+
 Each sample_XXXXXX.json in --in-dir produces:
     <out-dir>/sample_XXXXXX_described.json
     <out-dir>/plots/sample_XXXXXX/global.png   (only with --plot)
@@ -80,7 +87,23 @@ def main() -> int:
         "--in-dir",
         type=Path,
         default=Path("tests/out/batch"),
-        help="Directory of BasicOutput JSON files (default: tests/out/batch)",
+        help="Directory of BasicOutput JSON files (default: tests/out/batch). "
+        "Ignored when --split-file is given.",
+    )
+    parser.add_argument(
+        "--split-file",
+        type=Path,
+        default=None,
+        help="Path to a train/test split JSON (e.g. train_test_split.json) with "
+        "fields `data_dir`, `train_ids`, `val_ids`. When given, the input "
+        "directory is taken from `data_dir` and only the ids listed under "
+        "--split are processed.",
+    )
+    parser.add_argument(
+        "--split",
+        choices=["train", "val"],
+        default="val",
+        help="Which id list to use from --split-file (default: val)",
     )
     parser.add_argument(
         "--out-dir",
@@ -131,19 +154,46 @@ def main() -> int:
     cfg_path = args.config or Config.default_path()
     cfg = Config.load(cfg_path)
 
-    in_dir: Path = args.in_dir
     out_dir: Path = args.out_dir
     plots_dir: Path | None = (
         (args.plot_dir or out_dir / "plots") if args.plot else None
     )
 
-    if not in_dir.exists():
-        logger.error("--in-dir does not exist: %s", in_dir)
-        return 1
+    if args.split_file is not None:
+        if not args.split_file.exists():
+            logger.error("--split-file does not exist: %s", args.split_file)
+            return 1
+        with open(args.split_file) as f:
+            split = json.load(f)
+        in_dir = Path(split["data_dir"])
+        ids = split[f"{args.split}_ids"]
+        logger.info(
+            "Using split-file %s: data_dir=%s, split=%s, n_ids=%d",
+            args.split_file,
+            in_dir,
+            args.split,
+            len(ids),
+        )
+        all_inputs = [in_dir / f"{sample_id}.json" for sample_id in ids]
+        missing = [p for p in all_inputs if not p.exists()]
+        if missing:
+            logger.warning(
+                "%d/%d listed ids have no input file (e.g. %s); skipping them",
+                len(missing),
+                len(all_inputs),
+                missing[0],
+            )
+            all_inputs = [p for p in all_inputs if p.exists()]
+        all_inputs.sort()
+    else:
+        in_dir = args.in_dir
+        if not in_dir.exists():
+            logger.error("--in-dir does not exist: %s", in_dir)
+            return 1
+        all_inputs = sorted(in_dir.glob("*.json"))
 
-    all_inputs = sorted(in_dir.glob("*.json"))
     if not all_inputs:
-        logger.error("No JSON files found in %s", in_dir)
+        logger.error("No input JSON files found")
         return 1
 
     if args.skip_existing:
